@@ -23,7 +23,7 @@
 # > rhub_doctor()
 # > rhub_check(platforms = c("linux", "macos", "windows", "ubuntu-clang", "ubuntu-gcc12"))
 # ✔ Found git repository at /home/jo/SIK/truecluster/bit64.
-# ✔ Found GitHub PAT.                                 
+# ✔ Found GitHub PAT.
 # ✔ Check started: linux, macos, windows, ubuntu-clang, ubuntu-gcc12 (aspherical-sphinx).
 # See <https://github.com/truecluster/bit64/actions> for live output!
 
@@ -53,7 +53,10 @@
   packageStartupMessage("WARNING semantics differ from integer")
   packageStartupMessage("for more help type ?bit64")
 }
+
+# nocov start
 .onUnload <- function(libpath){
    packageStartupMessage("Unloading package bit64")
    library.dynam.unload("bit64", libpath)
 }
+# nocov end
