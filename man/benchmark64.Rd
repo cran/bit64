@@ -12,7 +12,7 @@ optimizer64(
   nbig = 2L^25L,
   timefun = repeat.time,
   what = c("match", "\%in\%", "duplicated", "unique", "unipos", "table", "rank",
-    "quantile"),
+    "quantile", "factor"),
   uniorder = c("original", "values", "any"),
   taborder = c("values", "counts"),
   plot = TRUE
@@ -29,7 +29,7 @@ optimizer64(
 
 \item{uniorder}{one of the order parameters that are allowed in \code{\link[=unique.integer64]{unique.integer64()}} and \code{\link[=unipos.integer64]{unipos.integer64()}}}
 
-\item{taborder}{one of the order parameters that are allowed in \code{\link[=table.integer64]{table.integer64()}}}
+\item{taborder}{one of the order parameters that are allowed in \code{\link[=table]{table()}}}
 
 \item{plot}{set to FALSE to suppress plotting}
 }
@@ -41,7 +41,7 @@ named 'SESSION' contains the elapsed seconds of the exemplary sesssion.
 \code{optimizer64} returns a dimensioned list with one row for each high-level
 function timed and two columns named after the values of the \code{nsmall} and
 \code{nbig} sample sizes. Each list cell contains a matrix with timings,
-low-level-methods in rows and three measurements \code{c("prep","both","use")}
+low-level-methods in rows and three measurements \code{c("prep", "both", "use")}
 in columns. If it can be measured separately, \code{prep} contains the timing
 of preparatory work such as sorting and hashing, and \code{use} contains the
 timing of using the prepared work. If the function timed does both,
@@ -63,11 +63,11 @@ Function for measuring algorithmic performance of high-level and low-level integ
 \tabular{rl}{
    \strong{use case name} \tab \strong{explanation} \cr
    cache \tab filling the cache according to scenario \cr
-   match(s,b) \tab match small in big vector \cr
+   match(s, b) \tab match small in big vector \cr
    s \%in\% b \tab small \%in\% big vector \cr
-   match(b,s) \tab match big in small vector \cr
+   match(b, s) \tab match big in small vector \cr
    b \%in\% s \tab big \%in\% small vector \cr
-   match(b,b) \tab match big in (different) big vector \cr
+   match(b, b) \tab match big in (different) big vector \cr
    b \%in\% b \tab big \%in\% (different) big vector \cr
    duplicated(b) \tab duplicated of big vector \cr
    unique(b) \tab unique of big vector \cr
@@ -77,6 +77,7 @@ Function for measuring algorithmic performance of high-level and low-level integ
    rank(b) \tab ranking of big vector \cr
    quantile(b) \tab quantiles of big vector \cr
    summary(b) \tab summary of of big vector \cr
+   factor(b) \tab coercion to factor of big vector \cr
    SESSION \tab exemplary session involving multiple calls (including cache filling costs) \cr
 }
 
@@ -111,12 +112,12 @@ message("let's look at the performance results on Core i7 Lenovo T410 with 8 GB 
 data(benchmark64.data)
 print(benchmark64.data)
 
-matplot(log2(benchmark64.data[-1,1]/benchmark64.data[-1,])
+matplot(log2(benchmark64.data[-1, 1]/benchmark64.data[-1, ])
 , pch=c("3", "6", "h", "s", "o", "a")
 , xlab="tasks [last=session]"
 , ylab="log2(relative speed) [bigger is better]"
 )
-matplot(t(log2(benchmark64.data[-1,1]/benchmark64.data[-1,]))
+matplot(t(log2(benchmark64.data[-1, 1]/benchmark64.data[-1, ]))
 , type="b", axes=FALSE
 , lwd=c(rep(1, 14), 3)
 , xlab="context"
@@ -130,11 +131,11 @@ axis(2)
 data(optimizer64.data)
 print(optimizer64.data)
 oldpar <- par(no.readonly = TRUE)
-par(mfrow=c(2,1))
+par(mfrow=c(2, 1))
 par(cex=0.7)
-for (i in 1:nrow(optimizer64.data)){
- for (j in 1:2){
-   tim <- optimizer64.data[[i,j]]
+for (i in 1:nrow(optimizer64.data)) {
+ for (j in 1:2) {
+   tim <- optimizer64.data[[i, j]]
   barplot(t(tim))
   if (rownames(optimizer64.data)[i]=="match")
    title(paste("match", colnames(optimizer64.data)[j], "in", colnames(optimizer64.data)[3-j]))
@@ -144,7 +145,7 @@ for (i in 1:nrow(optimizer64.data)){
    title(paste(rownames(optimizer64.data)[i], colnames(optimizer64.data)[j]))
  }
 }
-par(mfrow=c(1,1))
+par(mfrow=c(1, 1))
 }
 \seealso{
 \code{\link[=integer64]{integer64()}}

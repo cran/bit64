@@ -38,7 +38,7 @@
 #'  - [`:`]
 #'  - [is.double()]
 #'  - [match()]
-#'  - [`%in%`]
+#'  - \code{\link[=match]{\%in\%}}
 #   - [table()]
 #'  - [rank()]
 #'  - [order()]
@@ -51,7 +51,7 @@
 #'  - [match()] currently only dispatches at its first argument and expects
 #'    its second argument also to be integer64, otherwise throws an error.
 #'    Beware of something like `match(2, as.integer64(0:3))`
-#'  - [`%in%`] currently only dispatches at its first argument and expects
+#'  - \code{\link[=match]{\%in\%}} currently only dispatches at its first argument and expects
 #'    its second argument also to be integer64, otherwise throws an error.
 #'    Beware of something like `2 %in% as.integer64(0:3)`
 #'  - [order()] currently only orders a single argument, trying more than
@@ -60,20 +60,20 @@
 #' @seealso [bit64()], [S3]
 #'
 #' @examples
-#'  is.double(as.integer64(1))
-#'     as.integer64(1):9
-#'  match(as.integer64(2), as.integer64(0:3))
-#'  as.integer64(2) %in% as.integer64(0:3)
+#' is.double(as.integer64(1))
+#' as.integer64(1):9
+#' match(as.integer64(2), as.integer64(0:3))
+#' as.integer64(2) %in% as.integer64(0:3)
 #'
-#'  unique(as.integer64(c(1,1,2)))
-#'  rank(as.integer64(c(1,1,2)))
+#' unique(as.integer64(c(1,1,2)))
+#' rank(as.integer64(c(1,1,2)))
 #'
 #   %table(as.integer64(c(1,1,2)))
 #   %table(as.integer64(c(1,1,2)),as.integer64(c(3,4,4)))
 #   %table(as.integer64(c(1,1,2)),c(3,4,4))
 #   %table(c(1,1,2),as.integer64(c(3,4,4)))
 #'
-#'  order(as.integer64(c(1,NA,2)))
+#' order(as.integer64(c(1,NA,2)))
 #' @keywords methods
 #' @name bit64S3
 NULL
@@ -81,12 +81,12 @@ NULL
 # OCT 2013: bit64S3() at wish of CRAN maintainers replaced by direct conversion to S3 generics
 # in order to avoid assigning to globalenv
 
-`:` <- function(from,to) UseMethod(":")
+`:` <- function(from, to) UseMethod(":")
 #' @export
-`:.default` <- function(from,to) base::`:`(from,to)
+`:.default` <- function(from, to) base::`:`(from, to)
 
 #' @export
-`:.integer64` <- function(from, to)seq.integer64(from=from, to=to)
+`:.integer64` <- function(from, to) seq.integer64(from=from, to=to)
 
 is.double <- function(x) UseMethod("is.double")
 #' @rdname bit64S3
@@ -95,7 +95,7 @@ is.double.default <- function(x) base::is.double(x)
 
 #' @rdname bit64S3
 #' @export
-is.double.integer64 <- function(x)FALSE
+is.double.integer64 <- function(x) FALSE
 
 # TODO(R>=4.2.0): Remove workarounds for match(). Needed for #85 and #111.
 #' @rdname bit64S3
@@ -121,7 +121,7 @@ rank <- function(x, ...) UseMethod("rank")
 rank.default <- function(x, ...) base::rank(x, ...)
 
 # not yet able to combinewith other column types - better leave table() as is and hope for as.factor.integer64
-#if (!exists("table.default")){
+#if (!exists("table.default")) {
 #    "table" <- function(...) UseMethod("table")
 #    "table.default" <- function(...) base::"table"(...)
 #}
@@ -130,3 +130,48 @@ order <- function(...) UseMethod("order")
 #' @rdname bit64S3
 #' @export
 order.default <- function(...) base::order(...)
+
+#' @rdname matrix64
+#' @export matrix
+matrix = function(data=NA, nrow=1L, ncol=1L, byrow=FALSE, dimnames=NULL) UseMethod("matrix")
+#' @exportS3Method matrix default
+matrix.default = function(...) {
+  withCallingHandlers_and_choose_call(
+    base::matrix(...), 
+    c("matrix", "matrix.default")
+  )
+}
+
+#' @rdname matrix64
+#' @export array
+array = function(data=NA, dim=length(data), dimnames=NULL) UseMethod("array")
+#' @exportS3Method array default
+array.default = function(...) {
+  withCallingHandlers_and_choose_call(
+    base::array(...), 
+    c("array", "array.default")
+  )
+}
+
+#' @rdname matrix64
+#' @export
+colSums = function(x, na.rm=FALSE, dims=1L) UseMethod("colSums")
+#' @rdname matrix64
+#' @export
+colSums.default = function(x, na.rm=FALSE, dims=1L) 
+  withCallingHandlers_and_choose_call(
+    base::colSums(x=x, na.rm=na.rm, dims=dims), 
+    c("colSums", "colSums.default")
+  )
+
+#' @rdname matrix64
+#' @export
+rowSums = function(x, na.rm=FALSE, dims=1L) UseMethod("rowSums")
+#' @rdname matrix64
+#' @export
+rowSums.default = function(x, na.rm=FALSE, dims=1L) 
+  withCallingHandlers_and_choose_call(
+    base::rowSums(x=x, na.rm=na.rm, dims=dims), 
+    c("rowSums", "rowSums.default")
+  )
+

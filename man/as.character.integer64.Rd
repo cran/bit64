@@ -4,18 +4,31 @@
 \alias{as.character.integer64}
 \alias{as.bitstring}
 \alias{as.double.integer64}
+\alias{as.numeric.integer64}
+\alias{as.complex.integer64}
 \alias{as.integer.integer64}
+\alias{as.raw.integer64}
 \alias{as.logical.integer64}
 \alias{as.bitstring.integer64}
-\alias{print.bitstring}
+\alias{as.Date.integer64}
+\alias{as.POSIXct.integer64}
+\alias{as.POSIXlt.integer64}
+\alias{as.factor}
+\alias{as.ordered}
 \alias{as.list.integer64}
 \title{Coerce from integer64}
 \usage{
 as.bitstring(x, ...)
 
-\method{as.double}{integer64}(x, keep.names = FALSE, ...)
+\method{as.double}{integer64}(x, ...)
+
+\method{as.numeric}{integer64}(x, ...)
+
+\method{as.complex}{integer64}(x, ...)
 
 \method{as.integer}{integer64}(x, ...)
+
+\method{as.raw}{integer64}(x, ...)
 
 \method{as.logical}{integer64}(x, ...)
 
@@ -23,16 +36,22 @@ as.bitstring(x, ...)
 
 \method{as.bitstring}{integer64}(x, ...)
 
-\method{print}{bitstring}(x, ...)
+\method{as.Date}{integer64}(x, origin, ...)
+
+\method{as.POSIXct}{integer64}(x, tz = "", origin, ...)
+
+\method{as.POSIXlt}{integer64}(x, tz = "", origin, ...)
+
+as.factor(x)
+
+as.ordered(x)
 
 \method{as.list}{integer64}(x, ...)
 }
 \arguments{
 \item{x}{an integer64 vector}
 
-\item{...}{further arguments to the \code{\link[=NextMethod]{NextMethod()}}}
-
-\item{keep.names}{FALSE, set to TRUE to keep a names vector}
+\item{..., origin, tz}{further arguments to the \code{\link[=NextMethod]{NextMethod()}}}
 }
 \value{
 \code{as.bitstring} returns a string of class 'bitstring'.
@@ -48,9 +67,7 @@ The methods \code{\link[=format]{format()}}, \code{\link[=as.character]{as.chara
 \examples{
   as.character(lim.integer64())
   as.bitstring(lim.integer64())
-  as.bitstring(as.integer64(c(
-   -2,-1,NA,0:2
-  )))
+  as.bitstring(as.integer64(c(-2, -1, NA, 0:2)))
 }
 \seealso{
 \code{\link[=as.integer64.character]{as.integer64.character()}} \code{\link[=integer64]{integer64()}}

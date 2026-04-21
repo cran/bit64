@@ -31,7 +31,7 @@ qtile(x, probs = seq(0, 1, 0.25), ...)
 \arguments{
 \item{x}{a integer64 vector}
 
-\item{probs}{numeric vector of probabilities with values in \verb{[0,1]} - possibly containing \code{NA}s}
+\item{probs}{numeric vector of probabilities with values in \verb{[0, 1]} - possibly containing \code{NA}s}
 
 \item{...}{ignored}
 
@@ -58,7 +58,7 @@ Function \code{\link[=prank.integer64]{prank.integer64()}}  projects the values 
 \verb{[1..n]} to \verb{[0..1]}.
 }
 \details{
-\code{qtile.ineger64} is the inverse function of 'prank.integer64' and projects
+\code{qtile.integer64} is the inverse function of 'prank.integer64' and projects
 \verb{[0..1]} to \verb{[min..max]}.
 
 Functions \code{quantile.integer64} with \code{type=0} and \code{median.integer64} are

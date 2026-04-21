@@ -1,42 +1,19 @@
 /*
 # C-Code for sorting and ordering
 # S3 atomic 64bit integers for R
-# (c) 2011 Jens Oehlschägel
+# (c) 2011-2024 Jens Oehlschägel
+# (c) 2025 Michael Chirico
 # Licence: GPL2
 # Provided 'as is', use at your own risk
 # Created: 2011-12-11
-# Last changed:  2011-12-11
 */
 
 #define _SORT64_C_SRC
 
-/*****************************************************************************/
-/**                                                                         **/
-/**                            MODULES USED                                 **/
-/**                                                                         **/
-/*****************************************************************************/
-
+#include <R_ext/Random.h> // unif_rand
 #include "sort64.h"
 
-/*****************************************************************************/
-/**                                                                         **/
-/**                      DEFINITIONS AND MACROS                             **/
-/**                                                                         **/
-/*****************************************************************************/
-
 #define SHELLARRAYSIZE 16
-
-/*****************************************************************************/
-/**                                                                         **/
-/**                      TYPEDEFS AND STRUCTURES                            **/
-/**                                                                         **/
-/*****************************************************************************/
-
-/*****************************************************************************/
-/**                                                                         **/
-/**                   PROTOTYPYPES OF LOCAL FUNCTIONS                       **/
-/**                                                                         **/
-/*****************************************************************************/
 
 // static
 // returns uniform random index in range 0..(n-1)
@@ -61,86 +38,48 @@ static IndexT ram_integer64_median3index(
 , IndexT c        // pos in index
 );
 
-
-
-/*****************************************************************************/
-/**                                                                         **/
-/**                        EXPORTED VARIABLES                               **/
-/**                                                                         **/
-/*****************************************************************************/
-
-// no static no extern
-
 IndexT compare_counter;
 IndexT move_counter;
-
-
-/*****************************************************************************/
-/**                                                                         **/
-/**                          GLOBAL VARIABLES                               **/
-/**                                                                         **/
-/*****************************************************************************/
-
-// static
 
 static const ValueT shellincs[SHELLARRAYSIZE] = {1073790977, 268460033, 67121153, 16783361, 4197377,
            1050113, 262913, 65921, 16577, 4193, 1073, 281, 77,
            23, 8, 1};
 
 
-/*****************************************************************************/
-/**                                                                         **/
-/**                        EXPORTED FUNCTIONS                               **/
-/**                                                                         **/
-/*****************************************************************************/
-
-// no extern
-
-
 /* { === NA handling for integer64 ================================================ */
 
-// post sorting NA handling
-int ram_integer64_fixsortNA(
-  ValueT *data       // RETURNED: pointer to data vector
-, IndexT n           // length of data vector
-, int has_na         // 0 for pure doubles, 1 if NA or NaN can be present
-, int na_last        // 0 for placing NA NaN left, 1 for placing NA NaN right
-, int decreasing     // 0 for ascending, 1 for descending (must match the same parameter in sorting)
-)
-{
-  if (has_na){
-    IndexT i,nNA = 0 ;
-    if (decreasing){
-    for (i=n-1; i>=0; i--){
+int ram_integer64_fixsortNA(ValueT *data, IndexT n, int has_na, int na_last, int decreasing) {
+  if (!has_na)
+    return 0;
+  IndexT i, nNA = 0;
+  if (decreasing) {
+    for (i=n-1; i>=0; i--) {
       if (ISNA_INTEGER64(data[i]))
-      nNA++;
-    else
-      break;
+        nNA++;
+      else
+        break;
     }
-    if (!na_last){
-      for (;i>=0; i--)
-      data[i+nNA] = data[i];
+    if (!na_last) {
+      for (; i>=0; i--)
+        data[i+nNA] = data[i];
       for (i=nNA-1;i>=0; i--)
-      data[i] = NA_INTEGER64;
+        data[i] = NA_INTEGER64;
     }
-  }else{
-    for (i=0; i<n; i++){
+  } else {
+    for (i=0; i<n; i++) {
       if (ISNA_INTEGER64(data[i]))
-      nNA++;
-    else
-      break;
+        nNA++;
+      else
+        break;
     }
-    if (na_last){
-      for (;i<n; i++)
-      data[i-nNA] = data[i];
-      for (i=n-nNA;i<n; i++)
-      data[i] = NA_INTEGER64;
+    if (na_last) {
+      for (; i<n; i++)
+        data[i-nNA] = data[i];
+      for (i=n-nNA; i<n; i++)
+        data[i] = NA_INTEGER64;
     }
   }
   return nNA;
-  }else{
-    return 0;
-  }
 }
 
 // post sortordering NA handling
@@ -440,6 +379,7 @@ void ram_integer64_shellsort_asc(ValueT *data, IndexT l, IndexT r)
 {
     ValueT v;
     IndexT i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -458,6 +398,7 @@ void ram_integer64_shellsort_desc(ValueT *data, IndexT l, IndexT r)
 {
     ValueT v;
     IndexT i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -477,6 +418,7 @@ void ram_integer64_shellsortorder_asc(ValueT *data, IndexT *index, IndexT l, Ind
 {
     ValueT v;
     IndexT vi, i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -498,6 +440,7 @@ void ram_integer64_shellsortorder_desc(ValueT *data, IndexT *index, IndexT l, In
 {
     ValueT v;
     IndexT vi, i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -520,6 +463,7 @@ void ram_integer64_shellorder_asc(ValueT *data, IndexT *index, IndexT l, IndexT 
 {
     ValueT v;
     IndexT vi, i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -539,6 +483,7 @@ void ram_integer64_shellorder_desc(ValueT *data, IndexT *index, IndexT l, IndexT
 {
     ValueT v;
     IndexT vi, i, j, h, lh, t, n=r-l+1;
+    if (n < 2) return;
     for (t = 0; shellincs[t] > n; t++);
     for (h = shellincs[t]; t < SHELLARRAYSIZE; h = shellincs[++t]){
       lh = l+h;
@@ -1594,9 +1539,9 @@ SEXP r_ram_integer64_shellsort(
   int ret;
 
   int n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
   R_Busy(1);
   DEBUG_INIT
@@ -1633,9 +1578,9 @@ SEXP r_ram_integer64_shellsortorder(
   int ret;
 
   int n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
     R_Busy(1);
     DEBUG_INIT
@@ -1675,9 +1620,9 @@ SEXP r_ram_integer64_shellorder(
   int ret;
 
   int i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
     R_Busy(1);
     DEBUG_INIT
@@ -1724,9 +1669,9 @@ SEXP r_ram_integer64_mergesort(
   int ret;
 
   int i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
   R_Busy(1);
   DEBUG_INIT
@@ -1768,9 +1713,9 @@ SEXP r_ram_integer64_mergesortorder(
   int ret;
 
   int i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
   R_Busy(1);
   DEBUG_INIT
@@ -1819,9 +1764,9 @@ SEXP r_ram_integer64_mergeorder(
   int ret;
 
   int i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
 
   R_Busy(1);
   DEBUG_INIT
@@ -1873,9 +1818,9 @@ SEXP r_ram_integer64_quicksort(
   int ret;
 
   int n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int restlevel = asInteger(restlevel_);
 
   R_Busy(1);
@@ -1914,9 +1859,9 @@ SEXP r_ram_integer64_quicksortorder(
   int ret;
 
   int n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int restlevel = asInteger(restlevel_);
 
     R_Busy(1);
@@ -1958,9 +1903,9 @@ SEXP r_ram_integer64_quickorder(
   int ret;
 
   int i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int restlevel = asInteger(restlevel_);
 
     R_Busy(1);
@@ -2010,9 +1955,9 @@ SEXP r_ram_integer64_radixsort(
   DEBUG_INIT
 
   IndexT n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int radixbits = asInteger(radixbits_);
   int nradixes = 64 / radixbits;
 
@@ -2063,9 +2008,9 @@ SEXP r_ram_integer64_radixsortorder(
   R_Busy(1);
   DEBUG_INIT
   IndexT n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int radixbits = asInteger(radixbits_);
   int nradixes = 64 / radixbits;
 
@@ -2122,9 +2067,9 @@ SEXP r_ram_integer64_radixorder(
   R_Busy(1);
   DEBUG_INIT
   IndexT i,n = LENGTH(x_);
-  Rboolean has_na     = asLogical(has_na_);
-  Rboolean na_last    = asLogical(na_last_);
-  Rboolean decreasing = asLogical(decreasing_);
+  int has_na     = asLogical(has_na_);
+  int na_last    = asLogical(na_last_);
+  int decreasing = asLogical(decreasing_);
   int radixbits = asInteger(radixbits_);
   int nradixes = 64 / radixbits;
 

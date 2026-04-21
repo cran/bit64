@@ -1,24 +1,44 @@
-test_that("integer64 coercion to/from other types work", {
+test_that("integer64 coercion to/from other types work for atomic vectors", {
   # from integer64
+  i32 = 1:10
+  i64 = as.integer64(i32)
   expect_identical(as.logical(as.integer64(0:1)), c(FALSE, TRUE))
-  expect_identical(as.integer(as.integer64(1:10)), 1:10)
-  expect_identical(as.character(as.integer64(1:10)), as.character(1:10))
-  expect_identical(as.double(as.integer64(1:10)), as.double(1:10))
-  expect_identical(as.numeric(as.integer64(1:10)), as.numeric(1:10))
+  expect_identical(as.integer(i64), i32)
+  expect_identical(as.character(i64), as.character(i32))
+  expect_identical(as.double(i64), as.double(i32))
+  expect_identical(as.numeric(i64), as.numeric(i32))
 
   # to integer64
   expect_identical(as.integer64(TRUE), as.integer64(1L))
-  expect_identical(as.integer64(as.character(1:10)), as.integer64(1:10))
-  expect_identical(as.integer64(as.double(1:10)), as.integer64(1:10))
+  expect_identical(as.integer64(as.character(1:10)), i64)
+  expect_identical(as.integer64(as.double(1:10)), i64)
+  expect_identical(as.integer64(as.complex(1:10)), i64)
+  expect_identical(as.integer64(as.raw(1:10)), i64)
   expect_identical(as.integer64(NULL), as.integer64())
-  x = as.integer64(1:10)
-  expect_identical(as.integer64(x), x)
+  expect_identical(as.integer64(i64), i64)
+})
 
-  # S4 version
+test_that("integer64 coercion to/from other types works via S4 coercion", {
   expect_identical(methods::as(as.character(1:10), "integer64"), as.integer64(1:10))
+  expect_identical(methods::as(as.factor(11:20), "integer64"), as.integer64(1:10))
+  expect_identical(methods::as(as.ordered(11:20), "integer64"), as.integer64(1:10))
+  expect_warning(
+    expect_identical(methods::as(as.complex(1:10) + 1.0i, "integer64"), as.integer64(1:10)),
+    "imaginary parts discarded in coercion"
+  )
+  expect_identical(methods::as(as.numeric(1:10), "integer64"), as.integer64(1:10))
+  expect_identical(methods::as(as.integer(1:10), "integer64"), as.integer64(1:10))
+  expect_identical(methods::as(as.raw(1:10), "integer64"), as.integer64(1:10))
+  expect_identical(methods::as(as.logical(0:2), "integer64"), as.integer64(c(0L, 1L, 1L)))
   expect_identical(methods::as(as.integer64(1:10), "character"), as.character(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "factor"), as.factor(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "ordered"), as.ordered(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "numeric"), as.numeric(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "integer"), as.integer(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "logical"), as.logical(1:10))
+})
 
-  # now for NA
+test_that("integer64 coercion to/from other types works for NA", {
   expect_identical(as.logical(NA_integer64_), NA)
   expect_identical(as.integer(NA_integer64_), NA_integer_)
   expect_identical(as.double(NA_integer64_), NA_real_)
@@ -27,6 +47,167 @@ test_that("integer64 coercion to/from other types work", {
   expect_identical(as.integer64(NA_integer_), NA_integer64_)
   expect_identical(as.integer64(NA_real_), NA_integer64_)
   expect_identical(as.integer64(NA_character_), NA_integer64_)
+})
+
+test_that("integer64 coercion to/from factor types works", {
+  i32 = 1:10
+  i64 = as.integer64(i32)
+  expect_identical(as.factor(i64), as.factor(i32))
+  expect_identical(as.ordered(i64), as.ordered(i32))
+  expect_identical(as.integer64(as.factor(11:20)), as.integer64(1:10))
+  expect_identical(as.integer64(as.ordered(11:20)), as.integer64(1:10))
+})
+
+test_that("integer64 coercion to/from time types works", {
+  posixct = Sys.time()
+  posixct = c(posixct, posixct + 100)
+  posix_delta = difftime(posixct + 1000, posixct)
+
+  expect_identical(
+    as.integer64(posix_delta), 
+    as.integer64(as.integer(posix_delta))
+  )
+  # as.integer.difftime does not work with `units`
+  expect_identical(
+    as.integer64(posix_delta, units="secs"), 
+    as.integer64(as.numeric(posix_delta, units="secs"))
+  )
+  expect_identical(
+    as.integer64(posix_delta, units="mins"), 
+    as.integer64(as.numeric(posix_delta, units="mins"))
+  )
+
+  expect_identical(as.integer64(posixct), as.integer64(as.integer(posixct)))
+  # as.integer.POSIXlt does not work properly
+  expect_identical(
+    as.integer64(as.POSIXlt(posixct)),
+    as.integer64(as.numeric(as.POSIXlt(posixct)))
+  )
+  expect_identical(
+    as.integer64(as.Date(posixct)),
+    as.integer64(as.integer(as.Date(posixct)))
+  )
+
+  # S4 version
+  expect_identical(methods::as(posix_delta, "integer64"), as.integer64(posix_delta))
+  expect_identical(methods::as(posixct, "integer64"), as.integer64(posixct))
+  expect_identical(methods::as(as.POSIXlt(posixct), "integer64"), as.integer64(as.POSIXlt(posixct)))
+  expect_identical(methods::as(as.Date(posixct), "integer64"), as.integer64(as.Date(posixct)))
+})
+
+test_that("integer64 coercion from generic object works", {
+  x = structure(
+    as.integer64(1:10),
+    class=c("otherClass", "integer64"),
+    dim=c(2L, 5L),
+    dimnames=list(LETTERS[1:2], letters[1:5]),
+    otherAttr="some other attribute"
+  )
+  expect_identical(as.integer64(x), as.integer64(1:10))
+})
+
+test_that("integer64 coercion to/from other types work for R >=4.0.0", {
+  skip_unless_r(">= 4.0.0")
+  # Strange behavior due to British Standard Time, as observed e.g. on r-universe runners (#233)
+  #   Possibly an R bug: https://stat.ethz.ch/pipermail/r-devel/2026-January/084326.html
+  # See also https://github.com/r-lib/waldo/issues/230 to allow dropping 'else FALSE'
+  ignore_attr = if ("BST" %in% attr(as.POSIXlt(0), "tzone")) "tzone" else FALSE
+
+  # from integer64
+  i32 = 1:10
+  i64 = as.integer64(i32)
+
+  expect_identical(as.complex(i64), as.complex(i32))
+  expect_identical(as.raw(i64), as.raw(i32))
+  expect_identical(methods::as(as.integer64(1:10), "complex"), as.complex(1:10))
+
+  expect_identical(as.Date(i64), as.Date(as.numeric(i32)))
+  expect_identical(as.Date(i64, origin=10), as.Date(as.numeric(i32), origin=10))
+  expect_identical(as.POSIXct(i64), as.POSIXct(as.numeric(i32)))
+  expect_identical(as.POSIXct(i64, origin=10), as.POSIXct(as.numeric(i32), origin=10))
+  expect_identical(as.POSIXct(i64, tz="UTC", origin=10), as.POSIXct(as.numeric(i32), tz="UTC", origin=10))
+  expect_identical(as.POSIXct(i64, tz="CET", origin=10), as.POSIXct(as.numeric(i32), tz="CET", origin=10))
+  expect_identical(as.POSIXlt(i64), as.POSIXlt(i32), ignore_attr=ignore_attr)
+  expect_identical(as.POSIXlt(i64, origin=10), as.POSIXlt(i32, origin=10))
+  expect_identical(as.POSIXlt(i64, tz="UTC", origin=10), as.POSIXlt(i32, tz="UTC", origin=10))
+  expect_identical(as.POSIXlt(i64, tz="CET", origin=10), as.POSIXlt(i32, tz="CET", origin=10))
+  expect_error(as.difftime(i32), "need explicit units for numeric conversion", fixed=TRUE)
+  expect_error(as.difftime(i64), "need explicit units for numeric conversion", fixed=TRUE)
+  expect_identical(as.difftime(i64, units="secs"), as.difftime(i32, units="secs"))
+  
+  # S4 version
+  expect_identical(methods::as(as.integer64(1:10), "raw"), as.raw(1:10))
+  expect_identical(methods::as(as.integer64(1:10), "difftime"), as.difftime(1:10, units="secs"))
+  expect_identical(methods::as(as.integer64(1:10), "POSIXct"), as.POSIXct(as.numeric(1:10)))
+  expect_identical(methods::as(as.integer64(1:10), "POSIXlt"), as.POSIXlt(1:10), ignore_attr=ignore_attr)
+  expect_identical(methods::as(as.integer64(1:10), "Date"), as.Date(as.numeric(1:10)))
+
+})
+
+test_that("integer64 coercion from character works for numbers near +/- 2^63", {
+  expect_identical(
+    as.character(as.integer64(c("-9223372036854775807", "-9223372036854775806", "9223372036854775806", "9223372036854775807", ""))),
+    c("-9223372036854775807", "-9223372036854775806", "9223372036854775806", "9223372036854775807", NA)
+  )
+})
+
+test_that("Conversion from hex is supported", {
+  expect_identical(
+    as.integer64(c("0x1", "0xF", "0x7FFFFFFFFFFFFFFF", "-0x1", "-0xF", "-0x7FFFFFFFFFFFFFFF", "0x0")),
+    as.integer64(c(1, 15, "9223372036854775807", -1, -15, "-9223372036854775807", 0))
+  )
+})
+
+test_that("as.integer64 can trim whitespace", {
+  expect_identical(as.integer64("  123   "), as.integer64("123"))
+  expect_identical(as.integer64("  123"), as.integer64("123"))
+  expect_identical(as.integer64("123   "), as.integer64("123"))
+  expect_identical(as.integer64(c("  1", "2  ", " 3 ")), as.integer64(1:3))
+  expect_identical(as.integer64("  0xAAA   "), as.integer64("0xAAA"))
+  expect_identical(as.integer64("  0xBBB"), as.integer64("0xBBB"))
+  expect_identical(as.integer64("0xCCC   "), as.integer64("0xCCC"))
+  expect_identical(as.integer64(c("  0x1", "0x2  ", " 0x3 ")), as.integer64(c("0x1", "0x2", "0x3")))
+})
+
+with_parameters_test_that(
+  "base-10 edge cases return missing",
+  expect_warning(
+    expect_identical(as.integer64(string), rep(NA_integer64_, length(string))),
+    "NAs introduced by coercion to integer64 range", fixed=TRUE
+  ),
+  string = list(
+    strrep("9", 63L),
+    "9223372036854775808",
+    "-9223372036854775808",
+    "999x",
+    "-999x",
+    c("9223372036854775809", "-9223372036854775809") # vector case from #175
+  )
+)
+
+with_parameters_test_that(
+  "hex edge cases return missing",
+  expect_warning(
+    expect_identical(as.integer64(string), NA_integer64_),
+    "NAs introduced by coercion to integer64 range", fixed=TRUE
+  ),
+  string = c(
+    "-0x8000000000000000",
+    "0x8000000000000000",
+    "0x",
+    "-0x",
+    "0xx",
+    " 0x",
+    "0x ",
+    "0x0Z"
+  )
+)
+
+test_that("as.integer64.double handles 2^63", {
+  expect_warning(
+    expect_identical(as.integer64(2^63), NA_integer64_),
+    "NAs produced by integer64 overflow"
+  )
 })
 
 test_that("S3 class basics work", {
@@ -39,40 +220,99 @@ test_that("S3 class basics work", {
   expect_identical(x[11L], as.integer64(0L))
 })
 
-test_that("indexing works", {
+test_that("indexing works: [<-", {
   x = as.integer64(1:10)
+  x_updated = as.integer64(c(2:3, 3:10))
 
-  x[1.0] = 2.0
-  x[2L] = 3L
-  expect_identical(x, as.integer64(c(2:3, 3:10)))
+  local({
+    x[1.0] = 2.0
+    x[2L] = 3L
+    expect_identical(x, x_updated)
+  })
+  local({
+    x[1.0] = 2L
+    x[2L] = 3.0
+    expect_identical(x, x_updated)
+  })
+  local({
+    x[1.0] = 2L
+    x[2L] = 3.0 + 0.0i
+    expect_identical(x, as.complex(c(2:3, 3:10)))
+  })
+  # TODO(#44): remove this deprecated test
+  local({
+    x[1.0] = 2L
+    x[2L] = "3"
+    expect_identical(x, x_updated)
+  })
+  local({
+    # TODO(#44): remove the option
+    withr::local_options(list(bit64.promoteInteger64ToCharacter=TRUE))
+    x[1.0] = 2L
+    x[2L] = "3"
+    expect_identical(x, as.character(c(2:3, 3:10)))
+  })
 
-  x[[1.0]] = 3.0
-  x[[2L]] = 4L
-  expect_identical(x, as.integer64(c(3:4, 3:10)))
+  # local writes didn't edit 'x'
+  expect_identical(x[1L], as.integer64(1L))
+  expect_identical(x[[2L]], as.integer64(2L))
+})
 
-  expect_identical(x[3L], as.integer64(3L))
-  expect_identical(x[[4L]], as.integer64(4L))
+test_that("indexing works: [[<-", {
+  x = as.integer64(1:10)
+  x_updated = as.integer64(c(3:4, 3:10))
+
+  local({
+    x[[1.0]] = 3.0
+    x[[2L]] = 4L
+    expect_identical(x, x_updated)
+  })
+  local({
+    x[[1.0]] = 3L
+    x[[2L]] = 4.0
+    expect_identical(x, x_updated)
+  })
+  local({
+    x[[1.0]] = 3L
+    x[[2L]] = 4.0 + 0.0i
+    expect_identical(x, as.complex(c(3:4, 3:10)))
+  })
+  # TODO(#44): remove this deprecated test
+  local({
+    x[[1.0]] = 3L
+    x[[2L]] = "4"
+    expect_identical(x, x_updated)
+  })
+  local({
+    # TODO(#44): remove `withr::local_options`
+    withr::local_options(list(bit64.promoteInteger64ToCharacter=TRUE))
+    x[[1.0]] = 3L
+    x[[2L]] = "4"
+    expect_identical(x, as.character(c(3:4, 3:10)))
+  })
+
+  # local writes didn't edit 'x'
+  expect_identical(x[1L], as.integer64(1L))
+  expect_identical(x[[2L]], as.integer64(2L))
+})
+
+test_that("indexing works: get", {
+  x = as.integer64(1:10)
 
   names(x) = letters[1:10]
   expect_identical(x[c("b", "c")], x[2:3])
   expect_identical(x[["d"]], x[[4L]])
+  
+  expect_no_warning(expect_identical(integer64()[integer()], integer64()))
+  expect_no_warning(expect_identical(structure(as.integer64(1L), dim=1L)[1L], as.integer64(1L)))
+
+  expect_no_warning(expect_identical(as.integer64(1L)[NA_integer_], NA_integer64_))
+  expect_no_warning(expect_identical(as.integer64(1L)[NA_integer64_], NA_integer64_))
 })
 
 test_that("arithmetic & basic math works", {
   x = as.integer64(1:10)
   y = as.integer64(10:1)
-
-  expect_identical(x + y, as.integer64(rep(11L, 10L)))
-  expect_identical(y - x, as.integer64(seq(9L, -9L, by=-2L)))
-  expect_identical(x * y, as.integer64(c(10L, 18L, 24L, 28L, 30L, 30L, 28L, 24L, 18L, 10L)))
-  # output is double even though it fits in integer [and integer64]
-  expect_identical(x[seq(2L, 10L, by=2L)] / 2L, as.double(1:5))
-  expect_identical(x ^ 2L, as.integer64((1:10)^2L))
-  expect_identical(-x, as.integer64(-(1:10)))
-
-  expect_identical(x %/% 2L, as.integer64(c(0L, 1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L)))
-  expect_identical(x %% 2L, as.integer64(rep_len(c(1L, 0L), 10L)))
-
   expect_identical(sign(x - 6L), as.integer64(rep(c(-1L, 0L, 1L), c(5L, 1L, 4L))))
   expect_identical(abs(x - 6.0), as.integer64(c(5:0, 1:4)))
 
@@ -80,7 +320,6 @@ test_that("arithmetic & basic math works", {
   expect_identical(log(x), log(as.numeric(x)))
   expect_identical(log(as.integer64(c(1L, 2L, 4L, 8L)), base=2L), as.numeric(0:3))
   expect_identical(log2(as.integer64(c(1L, 2L, 4L, 8L))), as.numeric(0:3))
-  # TODO(#48): Improve the numerical precision here.
   expect_identical(log10(as.integer64(c(1L, 10L, 100L, 1000L))), as.numeric(0:3), tolerance=1e-7)
 
   expect_identical(trunc(x), x)
@@ -99,19 +338,165 @@ test_that("basic statistics work", {
   expect_identical(sum(x, x), as.integer64(110L))
   expect_identical(prod(x), as.integer64(factorial(10L)))
   expect_identical(prod(x[1:5], x[6:10]), as.integer64(factorial(10L)))
-  expect_identical(min(x), x[1L])
-  expect_identical(min(x, as.integer64(0L)), as.integer64(0L))
-  expect_identical(max(x), x[10L])
-  expect_identical(max(x, as.integer64(11L)), as.integer64(11L))
-  expect_identical(range(x), x[c(1L, 10L)])
-  expect_identical(range(x, x+1L), c(x[1L], x[10L]+1L))
-
   expect_identical(diff(x), as.integer64(rep(1L, 9L)))
 
   expect_identical(cummin(x), as.integer64(rep(1L, 10L)))
   expect_identical(cummax(x), x)
   expect_identical(cumsum(x), as.integer64(choose(2:11, 2L)))
   expect_identical(cumprod(x), as.integer64(factorial(1:10)))
+})
+
+test_that("min, max, and range work", {
+  x = as.integer64(1:10)
+
+  expect_identical(min(x), x[1L])
+  expect_identical(max(x), x[10L])
+  expect_identical(range(x), x[c(1L, 10L)])
+
+  expect_identical(min(x, as.integer64(0L), as.integer64(11L)), as.integer64(0L))
+  expect_identical(max(x, as.integer64(0L), as.integer64(11L)), as.integer64(11L))
+  expect_identical(range(x, as.integer64(0L), as.integer64(11L)), as.integer64(c(0L, 11L)))
+
+  expect_identical(range(x, NA_integer64_, finite=TRUE), x[c(1L, 10L)])
+
+  expect_identical(min(x, integer64()), x[1L])
+  expect_identical(max(x, integer64()), x[10L])
+  expect_identical(range(x, integer64()), x[c(1L, 10L)])
+
+  expect_identical(min(x, integer64(), na.rm=TRUE), x[1L])
+  expect_identical(max(x, integer64(), na.rm=TRUE), x[10L])
+  expect_identical(range(x, integer64(), na.rm=TRUE), x[c(1L, 10L)])
+})
+
+test_that("min, max, and range work in edge cases", {
+  expect_warning(
+    expect_identical(min(integer64()), lim.integer64()[2L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(max(integer64()), lim.integer64()[1L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(range(integer64()), lim.integer64()[2:1]),
+    "no non-NA value"
+  )
+
+  expect_warning(
+    expect_identical(min(integer64(), na.rm=TRUE), lim.integer64()[2L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(max(integer64(), na.rm=TRUE), lim.integer64()[1L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(range(integer64(), na.rm=TRUE), lim.integer64()[2:1]),
+    "no non-NA value"
+  )
+
+  expect_no_warning(
+    expect_identical(min(lim.integer64()[2L]), lim.integer64()[2L])
+  )
+  expect_no_warning(
+    expect_identical(max(lim.integer64()[1L]), lim.integer64()[1L])
+  )
+  expect_no_warning(
+    expect_identical(range(lim.integer64()), lim.integer64())
+  )
+
+  expect_no_warning(
+    expect_identical(min(lim.integer64()[2L], NA_integer64_, na.rm=TRUE), lim.integer64()[2L])
+  )
+  expect_no_warning(
+    expect_identical(max(lim.integer64()[1L], NA_integer64_, na.rm=TRUE), lim.integer64()[1L])
+  )
+  expect_no_warning(
+    expect_identical(range(lim.integer64(), NA_integer64_, na.rm=TRUE), lim.integer64())
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(), NA_integer64_), rep(NA_integer64_, 2L))
+  )
+
+  expect_warning(
+    expect_identical(min(integer64(), NA_integer64_, na.rm=TRUE), lim.integer64()[2L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(max(integer64(), NA_integer64_, na.rm=TRUE), lim.integer64()[1L]),
+    "no non-NA value"
+  )
+  expect_warning(
+    expect_identical(range(integer64(), NA_integer64_, na.rm=TRUE), lim.integer64()[2:1]),
+    "no non-NA value"
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), NA_integer64_), rep(NA_integer64_, 2L))
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), NA_integer64_, na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), NA_integer64_, na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), NA_integer64_, na.rm=TRUE), rep(as.integer64(0L), 2L))
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), integer64(), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), integer64(), NA_integer64_), NA_integer64_)
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), integer64(), NA_integer64_), rep(NA_integer64_, 2L))
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), integer64(), NA_integer64_, na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), integer64(), NA_integer64_, na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), integer64(), NA_integer64_, na.rm=TRUE), rep(as.integer64(0L), 2L))
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), integer64()), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), integer64()), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), integer64()), as.integer64(c(0L, 0L)))
+  )
+
+  expect_no_warning(
+    expect_identical(min(integer64(1), integer64(), na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(max(integer64(1), integer64(), na.rm=TRUE), as.integer64(0L))
+  )
+  expect_no_warning(
+    expect_identical(range(integer64(1), integer64(), na.rm=TRUE), rep(as.integer64(0L), 2L))
+  )
 })
 
 test_that("display methods work", {
@@ -129,40 +514,189 @@ test_that("vector builders of integer64 work", {
   expect_identical(c(x, 4.0, 5.0, 6.0), as.integer64(1:6))
   expect_identical(c(x, as.integer64(4:6)), as.integer64(1:6))
 
-  expect_identical(cbind(x, FALSE), matrix64(c(1:3, 0L, 0L, 0L), nrow=3L, ncol=2L))
-  expect_identical(cbind(x, 4:6), matrix64(1:6, nrow=3L, ncol=2L))
-  expect_identical(cbind(x, 0.0), matrix64(c(1:3, 0L, 0L, 0L), nrow=3L, ncol=2L))
-  expect_identical(cbind(x, as.integer64(4:6)), matrix64(1:6, nrow=3L, ncol=2L))
+  expect_identical(cbind(x, FALSE), matrix64(c(1:3, 0L, 0L, 0L), nrow=3L, ncol=2L, dimnames=list(NULL, c("x", ""))))
+  expect_identical(cbind(x, 4:6), matrix64(1:6, nrow=3L, ncol=2L, dimnames=list(NULL, c("x", ""))))
+  expect_identical(cbind(x, 0.0), matrix64(c(1:3, 0L, 0L, 0L), nrow=3L, ncol=2L, dimnames=list(NULL, c("x", ""))))
+  expect_identical(cbind(x, as.integer64(4:6)), matrix64(1:6, nrow=3L, ncol=2L, dimnames=list(NULL, c("x", ""))))
 
-  expect_identical(rbind(x, FALSE), matrix64(c(1:3, 0L, 0L, 0L), nrow=2L, ncol=3L, byrow=TRUE))
-  expect_identical(rbind(x, 4:6), matrix64(1:6, nrow=2L, ncol=3L, byrow=TRUE))
-  expect_identical(rbind(x, 0.0), matrix64(c(1:3, 0L, 0L, 0L), nrow=2L, ncol=3L, byrow=TRUE))
-  expect_identical(rbind(x, as.integer64(4:6)), matrix64(1:6, nrow=2L, ncol=3L, byrow=TRUE))
+  expect_identical(rbind(x, FALSE), matrix64(c(1:3, 0L, 0L, 0L), nrow=2L, ncol=3L, byrow=TRUE, dimnames=list(c("x", ""), NULL)))
+  expect_identical(rbind(x, 4:6), matrix64(1:6, nrow=2L, ncol=3L, byrow=TRUE, dimnames=list(c("x", ""), NULL)))
+  expect_identical(rbind(x, 0.0), matrix64(c(1:3, 0L, 0L, 0L), nrow=2L, ncol=3L, byrow=TRUE, dimnames=list(c("x", ""), NULL)))
+  expect_identical(rbind(x, as.integer64(4:6)), matrix64(1:6, nrow=2L, ncol=3L, byrow=TRUE, dimnames=list(c("x", ""), NULL)))
 
   expect_identical(rep(x, 2L), c(x, x))
   expect_identical(rep(x, each=2L), as.integer64(c(1L, 1L, 2L, 2L, 3L, 3L)))
 
   expect_identical(x[1L]:x[3L], x)
   expect_identical(x[3L]:x[1L], x[3:1]) # rev() a separate method
+})
 
-  expect_identical(seq(x[1L], x[3L], by=1L), x)
-  expect_identical(seq(x[1L], x[3L], by=x[1L]), x)
-  expect_identical(seq(x[1L], to=10L, by=1L), as.integer64(1:10))
-  expect_identical(seq(x[1L], to=11L, by=2L), as.integer64(c(1L, 3L, 5L, 7L, 9L, 11L)))
-  # TODO(#47): More tests when the behavior is corrected.
+with_parameters_test_that(
+  "seq method works analogously to integer: 1 argument (except along.with);",
+  {
+    n64 = as.integer64(n)
+    expect_identical(seq(n64), as.integer64(seq(n)))
+    expect_identical(seq(from=n64), as.integer64(seq(from=n)))
+    expect_identical(seq(to=n64), as.integer64(seq(to=n)))
+    expect_identical(seq(by=n64), as.integer64(seq(by=n)))
+    if (n < 0L) {
+      expect_error(seq(length.out=n64), "'length.out' must be a non-negative number")
+    } else {
+      expect_identical(seq(length.out=n64), as.integer64(seq(length.out=n)))
+    }
+  },
+  n = c(0L, 5L, -1L)
+)
+
+with_parameters_test_that(
+  "seq method works analogously to integer: 2 arguments (except along.with)",
+  {
+    # be sure to coerce (truncate) consistently across actual/expected
+    n1_32 = as.integer(n1)
+    n2_32 = as.integer(n2)
+
+    n1_64 = as.integer64(n1)
+    n2_64 = as.integer64(n2)
+
+    # TODO(#211): restore parity to seq() here
+    if (n2 %% 1L == 0L) expect_identical(seq(n1_64, n2), as.integer64(seq(n1_32, n2)))
+    expect_identical(seq(n1_64, n2_64), as.integer64(seq(n1_32, n2_32)))
+
+
+    if (n2 == 0L) {
+      err_msg = "invalid '(to - from)/by'"
+      expect_error(seq(n1_64, by=n2), err_msg, fixed=TRUE)
+      expect_error(seq(to=n1_64, by=n2), err_msg, fixed=TRUE)
+    } else if (sign(1L - n1) == sign(n2)) {
+      if (n2 %% 1L == 0L) expect_identical(seq(n1_64, by=n2), as.integer64(seq(n1, by=n2)))
+      expect_identical(seq(n1_64, by=n2_64), as.integer64(seq(n1, by=n2_32)))
+
+      expect_error(seq(to=n1_64, by=n2), "wrong sign in 'by' argument", fixed=TRUE)
+    } else {
+      expect_error(seq(n1_64, by=n2), "wrong sign in 'by' argument", fixed=TRUE)
+
+      # TODO(#211): restore parity to seq() here
+      if (n2 %% 1L == 0L) expect_identical(seq(to=n1_64, by=n2), as.integer64(seq(to=n1, by=n2)))
+      expect_identical(seq(to=n1_64, by=n2_64), as.integer64(seq(to=n1, by=n2_32)))
+    }
+
+    if (n2 >= 0L) {
+      expect_identical(seq(n1_64, length.out=n2), as.integer64(seq(n1_32, length.out=n2)))
+      expect_identical(seq(n1_64, length.out=n2_64), as.integer64(seq(n1_32, length.out=n2_32)))
+
+      expect_identical(seq(to=n1_64, length.out=n2), as.integer64(seq(to=n1_32, length.out=n2)))
+      expect_identical(seq(to=n1_64, length.out=n2_64), as.integer64(seq(to=n1_32, length.out=n2_32)))
+
+      expect_identical(seq(by=n1_64, length.out=n2), as.integer64(seq(by=n1_32, length.out=n2)))
+      expect_identical(seq(by=n1_64, length.out=n2_64), as.integer64(seq(by=n1_32, length.out=n2_32)))
+    } else {
+      err_msg = "'length.out' must be a non-negative number"
+      expect_error(seq(n1_64, length.out=n2), err_msg, fixed=TRUE)
+      expect_error(seq(to=n1_64, length.out=n2), err_msg, fixed=TRUE)
+      expect_error(seq(by=n1_64, length.out=n2), err_msg, fixed=TRUE)
+    }
+  },
+  .cases = expand.grid(n1=c(0L, 5L, -1L), n2=c(0.0, 5.0, -1.0, 1.5))
+)
+
+with_parameters_test_that(
+  "seq method works analogously to integer: 3 arguments (except along.with)",
+  {
+    # be sure to coerce (truncate) consistently across actual/expected
+    n1_32 = as.integer(n1)
+    n2_32 = as.integer(n2)
+    n3_32 = as.integer(n3)
+
+    n1_64 = as.integer64(n1)
+    n2_64 = as.integer64(n2)
+    n3_64 = as.integer64(n3)
+
+    # TODO(#211): restore parity to seq() here
+    if (n2 == n1 || sign(n2 - n1) == sign(n3)) {
+      # TODO(#211): restore parity to seq() here
+      if (n2 %% 1L == 0L && n3 %% 1L == 0L) {
+        expect_identical(seq(n1_64, n2, by=n3), as.integer64(seq(n1_32, n2, by=n3)))
+        expect_identical(seq(n1_64, n2_64, by=n3), as.integer64(seq(n1_32, n2_32, by=n3)))
+        expect_identical(seq(n1_64, n2, by=n3_64), as.integer64(seq(n1_32, n2, by=n3_32)))
+        expect_identical(seq(n1_64, n2_64, by=n3_64), as.integer64(seq(n1_32, n2_32, by=n3_32)))
+      }
+    } else {
+      err_msg <- if (n3 == 0L) "invalid '(to - from)/by'" else "wrong sign in 'by' argument"
+      expect_error(seq(n1_64, n2, by=n3), err_msg, fixed=TRUE)
+    }
+
+    if (n3 < 0L) {
+      err_msg = "'length.out' must be a non-negative"
+      expect_error(seq(n1_64, n2, length.out=n3), err_msg, fixed=TRUE)
+      expect_error(seq(n1_64, by=n2, length.out=n3), err_msg, fixed=TRUE)
+      expect_error(seq(to=n1_64, by=n2, length.out=n3), err_msg, fixed=TRUE)
+    } else {
+      # TODO(#211): restore parity to seq() here
+      if (((n2 - n1) / (n3 - 1L)) %% 1L == 0L) {
+        expect_identical(seq(n1_64, n2, length.out=n3), as.integer64(seq(n1_32, n2, length.out=n3)))
+        expect_identical(seq(n1_64, n2_64, length.out=n3), as.integer64(seq(n1_32, n2_32, length.out=n3)))
+        expect_identical(seq(n1_64, n2, length.out=n3_64), as.integer64(seq(n1_32, n2, length.out=n3_32)))
+        expect_identical(seq(n1_64, n2_64, length.out=n3_64), as.integer64(seq(n1_32, n2_32, length.out=n3_32)))
+      }
+
+      # TODO(#211): restore parity to seq() here
+      if (n2 %% 1L == 0L) {
+        expect_identical(seq(n1_64, by=n2, length.out=n3), as.integer64(seq(n1_32, by=n2, length.out=n3)))
+        expect_identical(seq(n1_64, by=n2_64, length.out=n3), as.integer64(seq(n1_32, by=n2_32, length.out=n3)))
+        expect_identical(seq(n1_64, by=n2, length.out=n3_64), as.integer64(seq(n1_32, by=n2, length.out=n3_32)))
+        expect_identical(seq(n1_64, by=n2_64, length.out=n3_64), as.integer64(seq(n1_32, by=n2_32, length.out=n3_32)))
+
+        expect_identical(seq(to=n1_64, by=n2, length.out=n3), as.integer64(seq(to=n1_32, by=n2, length.out=n3)))
+        expect_identical(seq(to=n1_64, by=n2_64, length.out=n3), as.integer64(seq(to=n1_32, by=n2_32, length.out=n3)))
+        expect_identical(seq(to=n1_64, by=n2, length.out=n3_64), as.integer64(seq(to=n1_32, by=n2, length.out=n3_32)))
+        expect_identical(seq(to=n1_64, by=n2_64, length.out=n3_64), as.integer64(seq(to=n1_32, by=n2_32, length.out=n3_32)))
+      }
+    }
+  },
+  .cases = expand.grid(n1=c(0L, 5L, -1L), n2=c(0.0, 5.0, -1.0, 1.5), n3=c(0.0, 5.0, -1.0, 1.5))
+)
+
+test_that("seq method works analogously to integer: 4 arguments", {
+  n = as.integer64(5L)
+
+  expect_error(seq(n, n, by=n, length.out=n), "too many arguments")
+  expect_error(seq(n, n, by=n, along.with=n), "too many arguments")
+})
+
+test_that("seq() works back-compatibly w.r.t. mixed integer+double inputs", {
+  one = as.integer64(1L)
+  expect_identical(seq(one, 10L, by=1.5), as.integer64(1:10))
+  expect_identical(seq(to=one, from=10L, by=-1.5), as.integer64(10:1))
+
+  expect_identical(seq(one, 10L, by=10.0/3.0), as.integer64(c(1L, 4L, 7L, 10L)))
+  expect_identical(seq(to=one, from=10L, by=-10.0/3.0), as.integer64(c(10L, 7L, 4L, 1L)))
+
+  expect_error(seq(one, 10L, by=0.1), "invalid '(to - from)/by'", fixed=TRUE)
+  expect_error(seq(to=one, from=10L, by=-0.1), "invalid '(to - from)/by'", fixed=TRUE)
+
+  expect_identical(seq(one, 2.5), as.integer64(1:2))
+  expect_identical(seq(to=one, from=2.5), as.integer64(2:1))
+
+  expect_identical(seq(one, 5.5, by=1.5), as.integer64(1:5))
+  expect_identical(seq(to=one, from=5.5, by=-1.5), as.integer64(5:1))
 })
 
 # These tests were previously kept as tests under \examples{\dontshow{...}}.
 #   Converted to "proper" unit tests for clarity, after making them more
 #   canonical within {testthat}, e.g. better capturing expected warnings,
 #   changing stopifnot(identical(...)) to expect_identical(...).
-test_that("Old \\dontshow{} tests in ?format.integer64 continue working", {
+local({
   i <- -999:999
-  for (s in -3:3){
-    r <- as.integer64(round(as.integer(i), s))
-    r64 <- round(as.integer64(i), s)
-    expect_identical(r, r64)
-  }
+  with_parameters_test_that(
+    "Old \\dontshow{} tests in ?format.integer64 continue working",
+    {
+      r <- as.integer64(round(as.integer(i), s))
+      r64 <- round(as.integer64(i), s)
+      expect_identical(r, r64)
+    },
+    s = -3:3,
+    .interpret_glue = FALSE
+  )
 })
 
 test_that("Old \\dontshow{} tests in ?extract.replace.integer64 continue working", {
@@ -172,106 +706,14 @@ test_that("Old \\dontshow{} tests in ?extract.replace.integer64 continue working
 
 test_that("empty inputs give empty outputs for arithmetic", {
   x = integer64(1L)
-  y = integer64(0L)
+  empty = integer64(0L)
 
-  expect_identical(x+y, integer64())
-  expect_identical(y+x, integer64())
-
-  expect_identical(x-y, integer64())
-  expect_identical(y-x, integer64())
-
-  expect_identical(+y, integer64())
-  expect_identical(-y, integer64())
-
-  expect_identical(x*y, integer64())
-  expect_identical(y*x, integer64())
-
-  expect_identical(x/y, double())
-  expect_identical(y/x, double())
-
-  expect_identical(x^y, integer64())
-  expect_identical(y^x, integer64())
-
-  expect_identical(x %/% y, integer64())
-  expect_identical(y %/% x, integer64())
-
-  expect_identical(x%%y, integer64())
-  expect_identical(y%%x, integer64())
-
-  expect_identical(log(x, base=y), double())
-  # TODO(#93): don't suppress this warning which is inconsistent with integer()
-  expect_identical(suppressWarnings(log(y, base=x)), double())
-
-  expect_identical(x==y, logical())
-  expect_identical(y==x, logical())
-
-  expect_identical(x!=y, logical())
-  expect_identical(y!=x, logical())
-
-  expect_identical(x>=y, logical())
-  expect_identical(y>=x, logical())
-
-  expect_identical(x<=y, logical())
-  expect_identical(y<=x, logical())
-
-  expect_identical(x>y, logical())
-  expect_identical(y>x, logical())
-
-  expect_identical(x<y, logical())
-  expect_identical(y<x, logical())
-
-  expect_identical(x&y, logical())
-  expect_identical(y&x, logical())
-
-  expect_identical(x|y, logical())
-  expect_identical(y|x, logical())
-
-  expect_identical(xor(x, y), logical())
-  expect_identical(xor(y, x), logical())
-})
-
-test_that("semantics about mixed types for multiplication are respected", {
-  int = 5L
-  i64 = as.integer64(2L)
-  dbl = 3.5
-
-  # default: "old" semantics, to be deprecated
-  expect_identical(i64 * dbl, as.integer64(7L))
-  expect_identical(dbl * i64, as.integer64(6L))
-  expect_identical(i64 * int, as.integer64(10L))
-  expect_identical(int * i64, as.integer64(10L))
-  expect_identical(i64 * i64, as.integer64(4L))
-
-  skip_if_not_installed("withr") # only really for testing without testthat
-  withr::with_options(list(integer64_semantics = "new"), {
-    expect_identical(i64 * dbl, as.integer64(7L))
-    expect_identical(dbl * i64, as.integer64(7L))
-    expect_identical(i64 * int, as.integer64(10L))
-    expect_identical(int * i64, as.integer64(10L))
-    expect_identical(i64 * i64, as.integer64(4L))
-  })
-})
-
-test_that("semantics about mixed types for division are respected", {
-  int = 10L
-  i64 = as.integer64(5L)
-  dbl = 2.5
-
-  # default: "old" semantics, to be deprecated
-  expect_identical(i64 / dbl, 2.0)
-  expect_identical(dbl / i64, 0.4)
-  expect_identical(i64 / int, 0.5)
-  expect_identical(int / i64, 2.0)
-  expect_identical(i64 / i64, 1.0)
-
-  skip_if_not_installed("withr") # only really for testing without testthat
-  withr::with_options(list(integer64_semantics = "new"), {
-    expect_identical(i64 / dbl, 2.0)
-    expect_identical(dbl / i64, 0.5)
-    expect_identical(i64 / int, 0.5)
-    expect_identical(int / i64, 2.0)
-    expect_identical(i64 / i64, 1.0)
-  })
+  expect_identical(log(x, base=empty), double())
+  expect_identical(log(empty, base=x), double())
+  expect_identical(
+    log(`attr<-`(empty, "asdf", "jkl")),
+    `attr<-`(double(), "asdf", "jkl")
+  )
 })
 
 test_that("all.equal.integer64 reflects changes for vector scale= from all.equal.numeric", {
@@ -318,4 +760,820 @@ test_that("all.equal works", {
   expect_true(all.equal(x, x+1L, tolerance=1.0e9)) # forcing scale=1
   expect_match(all.equal(x, x+100L), "Mean relative difference", fixed=TRUE)
   expect_match(all.equal(x, x+1L, scale=1.0), "Mean absolute difference", fixed=TRUE)
+})
+
+test_that("anyNA method", {
+  expect_identical(anyNA(as.integer64(c(1L, 1L))), anyNA(c(1L, 1L)))
+  expect_identical(anyNA(as.integer64(c(1L, NA))), anyNA(c(1L, NA)))
+  expect_identical(anyNA(as.integer64(c(NA, NA))), anyNA(c(NA, NA)))
+  expect_identical(anyNA(integer64()), anyNA(integer()))
+})
+
+test_that("match works with zero length input", {
+  x32 = 1:10
+  x64 = as.integer64(1:10)
+  expect_identical(match(x64, integer()), match(x32, integer()))
+  expect_identical(match(x64, integer(), nomatch=NULL), match(x32, integer(), nomatch=NULL))
+  expect_identical(match(x64, integer(), nomatch=integer()), match(x32, integer(), nomatch=integer()))
+  expect_identical(match(x64, integer(), nomatch=10L), match(x32, integer(), nomatch=10L))
+  expect_identical(match(integer(), x64), match(integer(), x32))
+})
+
+test_that("factor and order for integer64 are still necessary", {
+  skip_unless_r(">= 4.1.0") # skip implementing "expect_failure" for ancient R
+  skip_on_cran()
+  skip_on_covr() # covr edits the function bodies
+
+  x = c(132724613L, -2143220989L, -1L, NA, 1L)
+  expect_failure(expect_identical(base::factor(as.integer64(x)), base::factor(x)))
+  expect_failure(expect_identical(factor(as.integer64(x)), base::factor(as.integer64(x))))
+  expect_identical(factor(as.integer64(x)), base::factor(x))
+
+  expect_identical(formals(factor), formals(base::factor))
+  expect_identical(formals(ordered), formals(base::ordered))
+  expect_identical(body(ordered), body(base::ordered))
+})
+
+with_parameters_test_that("factor and order work analogously to integer:", {
+    x = c(132724613L, -2143220989L, -1L, NA, 1L)
+    # test factor() for integer64 with short (< 4000) and long (>= 4000) vectors, because of the different code paths for the two cases
+    if (isTRUE(long_input))
+      x = rep_len(x, 5000L)
+
+    expect_identical(factor(as.integer64(x)), factor(x))
+
+    expect_identical(
+      tryCatch(factor(as.integer64(x), levels=levels, labels=labels, exclude=exclude, ordered=ordered), error=conditionMessage),
+      tryCatch(factor(x, levels=levels, labels=labels, exclude=exclude, ordered=ordered), error=conditionMessage)
+    )
+    if (isTRUE(ordered))
+      expect_identical(
+        tryCatch(ordered(as.integer64(x), levels=levels, labels=labels, exclude=exclude), error=conditionMessage),
+        tryCatch(ordered(x, levels=levels, labels=labels, exclude=exclude), error=conditionMessage)
+      )
+},
+  .cases = expand.grid(
+      levels=I(list(NULL, NA, 1L, c(-1L, 1L), "1")),
+      labels=I(list(levels, NULL, letters[1L], letters[1:2])),
+      exclude=I(list(NULL, NA, 1L, c(-1L, 1L))),
+      ordered=c(TRUE, FALSE),
+      long_input=c(FALSE, TRUE)
+    )
+)
+
+test_that("factor() overwrite doesn't oversample (#274)", {
+  expect_identical(
+    withr::with_seed(1, factor(sample(10))),
+    withr::with_seed(1, base::factor(sample(10)))
+  )
+  expected_result = withr::with_seed(1, base::factor(exclude = sample(1:10, 1L), sample(1:10)))
+  expect_identical(
+    withr::with_seed(1, factor(exclude = sample(1:10, 1L), sample(as.integer64(1:10)))),
+    expected_result
+  )
+  expect_identical(
+    withr::with_seed(1, factor(exclude = sample(1:10, 1L), sample(1:10))),
+    expected_result
+  )
+  
+  expected_result = withr::with_seed(1, base::factor(sample(1:10), exclude = sample(1:10, 1L)))
+  expect_identical(
+    withr::with_seed(1, factor(sample(as.integer64(1:10)), exclude = sample(1:10, 1L))),
+    expected_result
+  )
+  expect_identical(
+    withr::with_seed(1, factor(sample(1:10), exclude = sample(1:10, 1L))),
+    expected_result
+  )
+})
+
+test_that("extraction works consistent to integer: vector[", {
+  x = 1:10
+  names(x) = letters[seq_along(x)]
+  y = as.integer64(x)
+  names(y) = letters[seq_along(y)]
+
+  sel = c(TRUE, FALSE, NA, TRUE)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x)[sel]))
+
+  sel = c(1L, NA, 3L, 11L)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x)[sel]))
+
+  sel = c(1, NA, 3, 11)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x)[sel]))
+  expect_identical(y[as.integer64(sel)], setNames(as.integer64(x[sel]), names(x)[sel]))
+
+  sel = c(-1L, -3L, 0L, -11L)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x)[sel]))
+
+  sel = c(-1, -3, 0, -11)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x)[sel]))
+
+  # `only 0's may be mixed with negative subscripts`
+  sel = c(-1, -3, 0, -11, NA)
+  expect_same_error(x[sel], y[sel])
+
+  expect_identical(
+    as.integer64(c("9218868437227407266", "1"))[c(1,NA,3,4)],
+    as.integer64(c("9218868437227407266", NA, NA, NA))
+  )
+
+  sel = c("d", "", "b", NA_character_)
+  expect_identical(y[sel], setNames(as.integer64(x[sel]), names(x[sel])))
+
+  expect_identical(lapply(list(integer64()), `[`, 0L), list(integer64()))
+
+  getter = function(x, ...) x[...]
+
+  i64 = integer64(1)
+  names(i64) = "a"
+  expect_identical(getter(i64), i64)
+  expect_identical(getter(i64, 1L), i64)
+  expect_identical(getter(i64, "a"), i64)
+
+  i32 = integer(1)
+  names(i32) = "a"
+  expect_identical(getter(i32), i32)
+  expect_identical(getter(i32, 1L), i32)
+  expect_identical(getter(i32, "a"), i32)
+
+  l = list(integer(1L), integer(2L), integer(3L))
+  expect_identical(
+    lapply(l, getter, 1L),
+    list(integer(1L), integer(1L), integer(1L))
+  )
+})
+
+test_that("replacement works consistent to integer: vector[<-", {
+  x = as.integer(1:10)
+  names(x) = letters[seq_along(x)]
+  y = as.integer64(x)
+  names(y) = letters[seq_along(y)]
+
+  sel = c("d", "", "b", NA_character_)
+  x[sel] = 100L
+  y[sel] = 100L
+  expect_identical(y, setNames(as.integer64(x), names(x)))
+})
+
+test_that("extraction works consistent to integer: vector[[", {
+  x = as.integer(1:10)
+  names(x) = letters[seq_along(x)]
+  y = as.integer64(x)
+  names(y) = letters[seq_along(y)]
+
+  expect_identical(y[[3]], as.integer64(x[[3]]))
+  expect_identical(y[["d"]], as.integer64(x[["d"]]))
+})
+
+test_that("replacement works consistent to integer: vector[[<-", {
+  x = as.integer(1:10)
+  names(x) = letters[seq_along(x)]
+  y = as.integer64(x)
+  names(y) = letters[seq_along(y)]
+
+  x[["e"]] = 100L
+  y[["e"]] = 100L
+  expect_identical(y, setNames(as.integer64(x), names(x)))
+})
+
+test_that("extraction works consistent to integer: matrix[", {
+  m32 = matrix(1:10, nrow=2L)
+  m64 = matrix64(as.integer64(m32), nrow=dim(m32)[1L], ncol=dim(m32)[2L])
+
+  expect_identical(m32[integer(), 1:2, drop=TRUE], structure(integer(), dim=c(0L, 2L)))
+  expect_identical(m64[integer(), 1:2, drop=TRUE], structure(integer64(), dim=c(0L, 2L)))
+
+  expect_identical(m32[1:2, integer(), drop=TRUE], structure(integer(), dim=c(2L, 0L)))
+  expect_identical(m64[1:2, integer(), drop=TRUE], structure(integer64(), dim=c(2L, 0L)))
+
+  expect_identical(m32[integer(), 1:2, drop=FALSE], structure(integer(), dim=c(0L, 2L)))
+  expect_identical(m64[integer(), 1:2, drop=FALSE], structure(integer64(), dim=c(0L, 2L)))
+
+  expect_identical(m32[1:2, integer(), drop=FALSE], structure(integer(), dim=c(2L, 0L)))
+  expect_identical(m64[1:2, integer(), drop=FALSE], structure(integer64(), dim=c(2L, 0L)))
+
+  expect_identical(m32[1:2, 1:3, drop=TRUE], structure(1:6, dim=c(2L, 3L)))
+  expect_identical(m64[1:2, 1:3, drop=TRUE], structure(as.integer64(1:6), dim=c(2L, 3L)))
+
+  expect_identical(m32[1:2], 1:2)
+  expect_identical(m64[1:2], as.integer64(1:2))
+
+  expect_identical(m32[1:2, drop=TRUE], 1:2)
+  expect_identical(m64[1:2, drop=TRUE], as.integer64(1:2))
+
+  expect_identical(m32[j = 1:3, drop=TRUE], 1:3)
+  expect_identical(m64[j = 1:3, drop=TRUE], as.integer64(1:3))
+
+  expect_identical(m32[1:2, , drop=TRUE], structure(as.integer(1:10), dim=c(2L, 5L)))
+  expect_identical(m64[1:2, , drop=TRUE], structure(as.integer64(1:10), dim=c(2L, 5L)))
+
+  expect_identical(m32[, 1:3, drop=TRUE], structure(as.integer(1:6), dim=c(2L, 3L)))
+  expect_identical(m64[, 1:3, drop=TRUE], structure(as.integer64(1:6), dim=c(2L, 3L)))
+
+  expect_identical(m32[1, , drop=TRUE], c(1L, 3L, 5L, 7L, 9L))
+  expect_identical(m64[1, , drop=TRUE], as.integer64(c(1L, 3L, 5L, 7L, 9L)))
+
+  expect_identical(m32[1, , drop=FALSE], structure(c(1L, 3L, 5L, 7L, 9L), dim=c(1L, 5L)))
+  expect_identical(m64[1, , drop=FALSE], structure(as.integer64(c(1L, 3L, 5L, 7L, 9L)), dim=c(1L, 5L)))
+
+  expect_identical(m32[, 1, drop=TRUE], 1:2)
+  expect_identical(m64[, 1, drop=TRUE], as.integer64(1:2))
+
+  expect_identical(m32[, 1, drop=FALSE], structure(1:2, dim=2:1))
+  expect_identical(m64[, 1, drop=FALSE], structure(as.integer64(1:2), dim=2:1))
+
+  expect_identical(m32[c(9, NA, 11, 12), drop=FALSE], c(9L, NA, NA, NA))
+  expect_identical(m64[c(9, NA, 11, 12), drop=FALSE], as.integer64(c(9L, NA, NA, NA)))
+
+  expect_identical(m32[integer(), c(1:2, 0, NA), drop=TRUE], structure(integer(), dim=c(0L, 3L)))
+  expect_identical(m64[integer(), c(1:2, 0, NA), drop=TRUE], structure(integer64(), dim=c(0L, 3L)))
+  expect_identical(m64[integer64(), c(1:2, 0, NA), drop=TRUE], structure(integer64(), dim=c(0L, 3L)))
+
+  expect_identical(m32[, c(1:2, 0, NA), drop=TRUE], structure(c(1:4, NA, NA), dim=c(2L, 3L)))
+  expect_identical(m64[, c(1:2, 0, NA), drop=TRUE], structure(as.integer64(c(1:4, NA, NA)), dim=c(2L, 3L)))
+
+  expect_identical(m32[c(1, NA, 2), 1:3, drop=TRUE], structure(c(1L, NA, 2L, 3L, NA, 4L, 5L, NA, 6L), dim=c(3L, 3L)))
+  expect_identical(m64[c(1, NA, 2), 1:3, drop=TRUE], structure(as.integer64(c(1L, NA, 2L, 3L, NA, 4L, 5L, NA, 6L)), dim=c(3L, 3L)))
+
+  m32 = matrix(1:10, 2L, dimnames = list(LETTERS[1:2], letters[1:5]))
+  m64 = matrix64(as.integer64(1:10), nrow=2L, ncol=5L, dimnames = list(LETTERS[1:2], letters[1:5]))
+
+  # `subscript out of bounds`
+  expect_same_error(
+    m32[c("B", "D", "A"), c("d", "a")],
+    m64[c("B", "D", "A"), c("d", "a")]
+  )
+
+  expect_identical(m32[c("B", "D", "A")], rep(NA_integer_, 3L))
+  expect_identical(m64[c("B", "D", "A")], rep(NA_integer64_, 3L))
+})
+
+test_that("replacement works consistent to integer: matrix[<-", {
+  m32 = matrix(1:10, nrow=2L)
+  m64 = matrix64(as.integer64(m32), nrow=dim(m32)[1L], ncol=dim(m32)[2L])
+
+  local({
+    m32[1, c(1, 3, NA)] = 100L
+    m64[1, c(1, 3, NA)] = as.integer64(100L)
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[1, c(1, 4, NA)] = 101L
+    m64[1, c(1, 4, NA)] = 101L
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[1, c(1, 5, NA)] = 102
+    m64[1, c(1, 5, NA)] = 102
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[1, c(1, 5, NA)] = 102.0 + 0.0i
+    m64[1, c(1, 5, NA)] = 102.0 + 0.0i
+    expect_identical(m64, m32)
+  })
+  # TODO(#44): remove this deprecated test
+  local({
+    m32[1, c(1, 3, NA)] = 103L
+    m64[1, c(1, 3, NA)] = "103"
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    # TODO(#44): remove `withr::local_options`
+    withr::local_options(list(bit64.promoteInteger64ToCharacter=TRUE))
+    m32[1, c(1, 3, NA)] = "103"
+    m64[1, c(1, 3, NA)] = "103"
+    expect_identical(m64, m32)
+  })
+  local({
+    m32[1, c(1, 3, NA)] = 101L
+    m64[1, as.integer64(c(1, 3, NA))] = 101L
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[, -(1:3)] = 102L
+    m64[, -(1:3)] = 102L
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+})
+
+test_that("extraction works consistent to integer: matrix[[", {
+  m32 = matrix(1:10, 2L, dimnames = list(LETTERS[1:2], letters[1:5]))
+  m64 = matrix64(as.integer64(1:10), nrow=2L, ncol=5L, dimnames=list(LETTERS[1:2], letters[1:5]))
+
+  expect_identical(m64[[1, 2]], as.integer64(m32[[1, 2]]))
+  expect_identical(m64[[as.integer64(1L), as.integer64(2L)]], as.integer64(m32[[1, 2]]))
+  expect_identical(m64[["A", "d"]], as.integer64(m32[["A", "d"]]))
+
+  expect_identical(m64[[1]], as.integer64(m32[[1]]))
+  expect_identical(m64[[as.integer64(1L)]], as.integer64(m32[[1]]))
+
+  # `subscript out of bounds`
+  expect_same_error(m32[[NA]], m64[[NA]])
+  expect_same_error(m32[[NA]], m64[[NA_integer64_]])
+
+  # `attempt to select less than one element in integerOneIndex`
+  expect_same_error(m32[[0L]], m64[[0L]])
+  expect_same_error(m32[[0L]], m64[[as.integer64(0L)]])
+
+  # `attempt to select less than one element in get1index`
+  expect_same_error(m32[[integer()]], m64[[integer()]])
+  expect_same_error(m32[[integer()]], m64[[integer64()]])
+})
+
+test_that("replacement works consistent to integer: matrix[[<-", {
+  m32 = matrix(1:10, 2L, dimnames = list(LETTERS[1:2], letters[1:5]))
+  m64 = matrix64(as.integer64(1:10), nrow=2L, ncol=5L, dimnames=list(LETTERS[1:2], letters[1:5]))
+
+  local({
+    m32[[1, 3]] = 110L
+    m64[[1, 3]] = 110L
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[["A", "e"]] = 112L
+    m64[["A", "e"]] = 112L
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    m32[[1, 3]] = 111
+    m64[[1, 3]] = 111
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+    local({
+    m32[[1, 3]] = 111.0 + 0.0i
+    m64[[1, 3]] = 111.0 + 0.0i
+    expect_identical(m64, m32)
+  })
+  # TODO(#44): remove this deprecated test
+  local({
+    m32[[1, 4]] = 112L
+    m64[[1, 4]] = "112"
+    expect_identical(m64, structure(as.integer64(m32), dim=dim(m32), dimnames=dimnames(m32)))
+  })
+  local({
+    # TODO(#44): remove `withr::local_options`
+    withr::local_options(list(bit64.promoteInteger64ToCharacter=TRUE))
+    m32[[1, 4]] = "112"
+    m64[[1, 4]] = "112"
+    expect_identical(m64, m32)
+  })
+
+})
+
+test_that("extraction consistent to integer: array[", {
+  a32 = array(1:27, c(3,3,3))
+  a64 = array64(as.integer64(1:27), c(3,3,3))
+
+  expect_identical(a32[2, , 3, drop=FALSE], structure(c(20L, 23L, 26L), dim = c(1L, 3L, 1L)))
+  expect_identical(a64[2, , 3, drop=FALSE], structure(as.integer64(c(20L, 23L, 26L)), dim = c(1L, 3L, 1L)))
+
+  expect_identical(a32[2, , 3, drop=TRUE], c(20L, 23L, 26L))
+  expect_identical(a64[2, , 3, drop=TRUE], as.integer64(c(20L, 23L, 26L)))
+
+  expect_identical(a32[1, c(1, 3, 2), 2:3, drop=TRUE], structure(c(10L, 16L, 13L, 19L, 25L, 22L), dim = 3:2))
+  expect_identical(a64[1, c(1, 3, 2), 2:3, drop=TRUE], structure(as.integer64(c(10L, 16L, 13L, 19L, 25L, 22L)), dim = 3:2))
+
+  expect_identical(a32[, c(1, 2, 0, 3, NA, 1), c(TRUE, FALSE, NA), drop=FALSE], structure(c(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, NA, NA, NA, 1L, 2L, 3L, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA), dim = c(3L, 5L, 2L)))
+  expect_identical(a64[, c(1, 2, 0, 3, NA, 1), c(TRUE, FALSE, NA), drop=FALSE], structure(as.integer64(c(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, NA, NA, NA, 1L, 2L, 3L, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)), dim = c(3L, 5L, 2L)))
+
+  expect_identical(a32[, c(1, 2, 0, 3, NA, 1), c(TRUE, FALSE, NA), drop=TRUE], structure(c(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, NA, NA, NA, 1L, 2L, 3L, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA), dim = c(3L, 5L, 2L)))
+  expect_identical(a64[, c(1, 2, 0, 3, NA, 1), c(TRUE, FALSE, NA), drop=TRUE], structure(as.integer64(c(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, NA, NA, NA, 1L, 2L, 3L, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)), dim = c(3L, 5L, 2L)))
+
+  expect_identical(a32[c(1, 0, 7, NA, 27, 28), drop=FALSE], c(1L, 7L, NA, 27L, NA))
+  expect_identical(a64[c(1, 0, 7, NA, 27, 28), drop=FALSE], as.integer64(c(1L, 7L, NA, 27L, NA)))
+
+  expect_identical(a32[c(TRUE, FALSE, NA, TRUE), drop=FALSE], c(1L, NA, 4L, 5L, NA, 8L, 9L, NA, 12L, 13L, NA, 16L, 17L, NA, 20L, 21L, NA, 24L, 25L, NA))
+  expect_identical(a64[c(TRUE, FALSE, NA, TRUE), drop=FALSE], as.integer64(c(1L, NA, 4L, 5L, NA, 8L, 9L, NA, 12L, 13L, NA, 16L, 17L, NA, 20L, 21L, NA, 24L, 25L, NA)))
+
+  expect_identical(a32[-1, , -c(0, 2:3), drop=FALSE], structure(c(2L, 3L, 5L, 6L, 8L, 9L), dim = c(2L, 3L, 1L)))
+  expect_identical(a64[-1, , -c(0, 2:3), drop=FALSE], structure(as.integer64(c(2L, 3L, 5L, 6L, 8L, 9L)), dim = c(2L, 3L, 1L)))
+
+  expect_identical(a32[-1, 2, -c(0, 2:3), drop=FALSE], structure(5:6, dim = c(2L, 1L, 1L)))
+  expect_identical(a64[-1, 2, -c(0, 2:3), drop=FALSE], structure(as.integer64(5:6), dim = c(2L, 1L, 1L)))
+
+  expect_identical(a32[-1, 2, -c(0, 2:3), drop=TRUE], 5:6)
+  expect_identical(a64[-1, 2, -c(0, 2:3), drop=TRUE], as.integer64(5:6))
+})
+
+test_that("extraction from subclass retains inheritance structure", {
+  x = as.integer64(1:2)
+  class(x) = c("subclass", "integer64")
+
+  expect_identical(x[1:2], x)
+
+  y = x
+  y[2L] = as.integer64(3L)
+  expect_identical(y, structure(unclass(as.integer64(c(1L, 3L))), class=class(x)))
+
+  x1 = x[[1L]]
+  expect_identical(x1, structure(unclass(x)[1L], class=class(x)))
+
+  y[[2L]] = as.integer64(4L)
+  expect_identical(y, structure(unclass(as.integer64(c(1L, 4L))), class=class(x)))
+})
+
+test_that("c works consistent to R", {
+  convert_x32_result_to_integer64 = function(x, x32=x, recursive=FALSE) {
+    if (isTRUE(recursive))
+      ret = as.integer64(x)
+    else
+      ret = lapply(seq_along(x), function(el) if (el <= length(x32)) as.integer64(x[[el]]) else x[[el]])
+    names(ret) = names(x)
+    ret
+  }
+  
+  x32 = 1:10
+  x64 = as.integer64(x32) 
+
+  expect_identical(c(A=integer64(), B=as.raw(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.raw(x32)), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.logical(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.logical(x32)), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.difftime(x32, units="secs")), convert_x32_result_to_integer64(c(A=integer(), B=as.difftime(x32, units="secs")), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.POSIXct(x32, origin="2026-01-27")), convert_x32_result_to_integer64(c(A=integer(), B=as.POSIXct(x32, origin="2026-01-27")), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.Date(x32, origin="2026-01-27")), convert_x32_result_to_integer64(c(A=integer(), B=as.Date(x32, origin="2026-01-27")), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.factor(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.factor(x32)), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.ordered(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.ordered(x32)), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.double(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.double(x32)), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=x32), convert_x32_result_to_integer64(c(A=integer(), B=x32), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=as.complex(x32)), c(A=integer(), B=as.complex(x32)))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(c(A=integer64(), B=as.character(x32)), convert_x32_result_to_integer64(c(A=integer(), B=as.character(x32)), recursive=TRUE))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(c(A=integer64(), B=as.character(x32)), c(A=integer(), B=as.character(x32)))
+  })
+  
+  expect_identical(c(A=x64, B=as.raw(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.raw(x32)), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.logical(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.logical(x32)), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.difftime(x32, units="secs")), convert_x32_result_to_integer64(c(A=x32, B=as.difftime(x32, units="secs")), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.POSIXct(x32, origin="2026-01-27")), convert_x32_result_to_integer64(c(A=x32, B=as.POSIXct(x32, origin="2026-01-27")), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.Date(x32, origin="2026-01-27")), convert_x32_result_to_integer64(c(A=x32, B=as.Date(x32, origin="2026-01-27")), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.factor(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.factor(x32)), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.ordered(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.ordered(x32)), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.double(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.double(x32)), recursive=TRUE))
+  expect_identical(c(A=x64, B=x32), convert_x32_result_to_integer64(c(A=x32, B=x32), recursive=TRUE))
+  expect_identical(c(A=x64, B=as.complex(x32)), c(A=x32, B=as.complex(x32)))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(c(A=x64, B=as.character(x32)), convert_x32_result_to_integer64(c(A=x32, B=as.character(x32)), recursive=TRUE))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(c(A=x64, B=as.character(x32)), c(A=x32, B=as.character(x32)))
+  })
+
+  # regarding lists  
+  expect_identical(c(A=integer64(), B=list()), convert_x32_result_to_integer64(c(A=integer(), B=list()), integer()))
+  expect_identical(c(A=integer64(), B=list(), recursive=TRUE), convert_x32_result_to_integer64(c(A=integer64(), B=list(), recursive=TRUE), integer(), recursive=TRUE))
+  expect_identical(c(A=integer64(), B=list(), C=1:2), convert_x32_result_to_integer64(c(A=integer(), B=list(), C=1:2), integer()))
+  expect_identical(c(A=integer64(), B=list(), C=1:2, recursive=TRUE), convert_x32_result_to_integer64(c(A=integer(), B=list(), C=1:2, recursive=TRUE), integer(), recursive=TRUE))
+  
+  expect_identical(c(A=x64, B=list()), convert_x32_result_to_integer64(c(A=x32, B=list()), x32))
+  expect_identical(c(A=x64, B=list(), recursive=TRUE), convert_x32_result_to_integer64(c(A=x32, B=list(), recursive=TRUE), x32, recursive=TRUE))
+  expect_identical(c(A=x64, B=list(), C=1:2), convert_x32_result_to_integer64(c(A=x32, B=list(), C=1:2), x32))
+  expect_identical(c(A=x64, B=list(), C=1:2, recursive=TRUE), convert_x32_result_to_integer64(c(A=x32, B=list(), C=1:2, recursive=TRUE), x32, recursive=TRUE))
+  expect_identical(c(A=x64, B=list(a=1:2, b=3, c="4")), convert_x32_result_to_integer64(c(A=x32, B=list(a=1:2, b=3, c="4")), x32))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(c(A=x64, B=list(a=1:2, b=3, c="4"), recursive=TRUE), convert_x32_result_to_integer64(c(A=x32, B=list(a=1:2, b=3, c="4"), recursive=TRUE), x32, recursive=TRUE))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(c(A=x64, B=list(a=1:2, b=3, c="4"), recursive=TRUE), c(A=x32, B=list(a=1:2, b=3, c="4"), recursive=TRUE))
+  })
+  expect_identical(c(A=x64, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE)), convert_x32_result_to_integer64(c(A=x32, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE)), x32))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(c(A=x64, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE), recursive=TRUE), convert_x32_result_to_integer64(c(A=x32, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE), recursive=TRUE), x32, recursive=TRUE))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(c(A=x64, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE), recursive=TRUE), c(A=x32, B=data.frame(a=1:2, b=3, c="4", stringsAsFactors=FALSE), recursive=TRUE))
+  })
+  
+  expect_identical(c(x64, as.POSIXlt(x32, origin="2026-01-27")), convert_x32_result_to_integer64(c(x32, as.POSIXlt(x32, origin="2026-01-27")), x32))
+  if (getRversion() >= "4.0.0" ) # in my tests on R 3.5.0 this is identical
+    expect_identical(c(x64, as.POSIXlt(x32, origin="2026-01-27"), recursive=TRUE), c(x32, as.POSIXlt(x32, origin="2026-01-27"), recursive=TRUE))
+
+  expect_identical(
+    c(A=x64, B=list(aa=x64, bb=list(bba=x64, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x64, b=x32)),
+    convert_x32_result_to_integer64(c(A=x32, B=list(aa=x64, bb=list(bba=x64, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x64, b=x32)), x32)
+  )
+  # TODO(#44): adjust tests accordingly
+  expect_identical(
+    c(A=x64, B=list(aa=x64, bb=list(bba=x64, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x64, b=x32), recursive=TRUE),
+    convert_x32_result_to_integer64(c(A=x32, B=list(aa=x32, bb=list(bba=x32, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x32, b=x32), recursive=TRUE), recursive=TRUE)
+  )      
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(
+      c(A=x64, B=list(aa=x64, bb=list(bba=x64, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x64, b=x32), recursive=TRUE),
+      c(A=x32, B=list(aa=x32, bb=list(bba=x32, bbb=x32, bbc=as.character(x32))), C=data.frame(a=x32, b=x32), recursive=TRUE)
+    )      
+  })
+})
+
+test_that("c works on extended integer64 objects (#298)", {
+  x = y = as.integer64(1L)
+  class(x) = c('foo', 'integer64')
+  expect_identical(c(x, y), as.integer64(c(1L, 1L)))
+  expect_identical(c(a=x, b=y), setNames(as.integer64(c(1L, 1L)), c("a", "b")))
+  expect_identical(cbind(x, y), matrix64(c(1L, 1L), nrow=1L, ncol=2L, dimnames=list(NULL, c("x", "y"))))
+  expect_identical(rbind(x, y), matrix64(c(1L, 1L), nrow=2L, ncol=1L, dimnames=list(c("x", "y"), NULL)))
+})
+
+replace_dimnames = function(x, old, new) {
+  if (!is.null(dn <- dimnames(x))) 
+    dimnames(x) = lapply(dn, function(el) {el[el == old] = new; el})
+  x
+}
+test_that("cbind works consistent to R", {
+  convert_x32_result_to_integer64 = function(x, colsToConvert=NULL) {
+    if (!is.matrix(x) && !is.data.frame(x)) return(x)
+    if (is.data.frame(x)) {
+      for (col in colsToConvert)
+        x[[col]] = as.integer64(x[[col]])
+      return(x)
+    }
+    if (is.list(x)) {
+      nrow_x = nrow(x)
+      for (col in colsToConvert)
+        for (ii in seq_len(nrow_x))
+          x[[(col - 1L)*nrow_x + ii]] = as.integer64(x[[(col - 1L)*nrow_x + ii]])
+      x = replace_dimnames(x, "x32", "x64")
+    } else { # is.matrix(x)
+      x = replace_dimnames(matrix(as.integer64(x), nrow=nrow(x), ncol=ncol(x), dimnames=dimnames(x)), "x32", "x64")
+      oldClass(x) = "integer64"
+    }
+    x
+  }
+
+  x32 = 1:10
+  x64 = as.integer64(x32)
+
+  expect_identical(cbind(x64, as.raw(5L)), convert_x32_result_to_integer64(cbind(x32, as.raw(5L))))
+  expect_identical(cbind(x64, FALSE), convert_x32_result_to_integer64(cbind(x32, FALSE)))
+  expect_identical(cbind(x64, 0L), convert_x32_result_to_integer64(cbind(x32, 0L)))
+  expect_identical(cbind(x64, 0.0), convert_x32_result_to_integer64(cbind(x32, 0.0)))
+  expect_identical(cbind(x64, 0.0+0.0i), replace_dimnames(cbind(x32, 0.0+0.0i), "x32", "x64"))
+  expect_identical(cbind(x64, as.difftime(0.0, units="secs")), convert_x32_result_to_integer64(cbind(x32, as.difftime(0.0, units="secs"))))
+  expect_identical(cbind(x64, as.POSIXct(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(cbind(x32, as.POSIXct(0.0, origin="2026-01-27"))))
+  suppressWarnings(expect_identical(cbind(x64, as.POSIXlt(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(cbind(x32, as.POSIXlt(0.0, origin="2026-01-27")), 1L)))
+  expect_identical(cbind(x64, as.Date(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(cbind(x32, as.Date(0.0, origin="2026-01-27"))))
+  expect_identical(cbind(x64, as.factor(1L)), convert_x32_result_to_integer64(cbind(x32, as.factor(1L))))
+  expect_identical(cbind(x64, as.ordered(1L)), convert_x32_result_to_integer64(cbind(x32, as.ordered(1L))))
+  expect_identical(cbind(x64, as.integer64(0L)), replace_dimnames(cbind(x32, as.integer64(0L)), "x32", "x64"))
+  expect_identical(cbind(integer64()), convert_x32_result_to_integer64(cbind(integer())))
+  expect_identical(cbind(NA_integer64_), convert_x32_result_to_integer64(cbind(NA_integer_)))
+  expect_identical(cbind(rep(NA_integer64_, 2)), convert_x32_result_to_integer64(cbind(rep(NA_integer_, 2))))
+  expect_identical(cbind(x64), convert_x32_result_to_integer64(cbind(x32)))
+  expect_identical(cbind(x64, c(TRUE, NA)), convert_x32_result_to_integer64(cbind(x32, c(TRUE, NA))))
+  expect_identical(cbind(x64, c(42L, NA)), convert_x32_result_to_integer64(cbind(x32, c(42L, NA))))
+  expect_identical(cbind(x64, c(42.0, NA)), convert_x32_result_to_integer64(cbind(x32, c(42.0, NA))))
+  expect_identical(cbind(x64, c(42.0+42.0i, NA)), replace_dimnames(cbind(x32, c(42.0+42.0i, NA)), "x32", "x64"))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(cbind(x64, c("42", NA)), convert_x32_result_to_integer64(cbind(x32, c("42", NA))))
+  expect_identical(cbind(x64, character()), convert_x32_result_to_integer64(cbind(x32, character())))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(cbind(x64, c("42", NA)), replace_dimnames(cbind(x32, c("42", NA)), "x32", "x64"))
+    expect_identical(cbind(x64, character()), replace_dimnames(cbind(x32, character()), "x32", "x64"))
+  })
+  expect_identical(cbind(x64, complex()), replace_dimnames(cbind(x32, complex()), "x32", "x64"))
+  
+  expect_identical(
+    cbind(A=x64, B=list()),
+    convert_x32_result_to_integer64(cbind(A=x32, B=list()), 1L)
+  )
+  expect_identical(
+    cbind(A=x64, B=list(a=1:10, b=1:2)),
+    convert_x32_result_to_integer64(cbind(A=x32, B=list(a=1:10, b=1:2)), 1L)
+  )
+  expect_identical(
+    cbind(A=matrix(x64, 5), B=list()),
+    convert_x32_result_to_integer64(cbind(A=matrix(x32, 5), B=list()), 1:2)
+  )
+  expect_identical(
+    cbind(A=matrix(x64, 5), B=list(), C=1:5),
+    convert_x32_result_to_integer64(cbind(A=matrix(x32, 5), B=list(), C=1:5), 1:3)
+  )
+  suppressWarnings(expect_identical(
+    cbind(A=matrix(x64, 5), B=list(a=1:10, b=1:2), C=1:5),
+    convert_x32_result_to_integer64(cbind(A=matrix(x32, 5), B=list(a=1:10, b=1:2), C=1:5), c(1, 2, 4))
+  ))
+  skip_unless_r(">= 4.0.0") # in my tests on R 3.5.0 this is identical
+  expect_same_error(
+    cbind(matrix(x64, 5), list(), NULL, matrix(1:10, 2)),
+    cbind(matrix(x32, 5), list(), NULL, matrix(1:10, 2))
+  )
+  expect_same_error(
+    cbind(matrix(x64, 5), list(), NULL, data.frame(a=10:1, b=LETTERS[1:10]), stringsAsFactors=FALSE),
+    cbind(matrix(x32, 5), list(), NULL, data.frame(a=10:1, b=LETTERS[1:10]), stringsAsFactors=FALSE)
+  )
+  expect_identical(
+    cbind(matrix(x64, 5), data.frame(a=5:1, b=LETTERS[1:5], stringsAsFactors=FALSE)), 
+    convert_x32_result_to_integer64(cbind(matrix(x32, 5), data.frame(a=5:1, b=LETTERS[1:5], stringsAsFactors=FALSE)), colsToConvert=1:2)
+  )
+  expect_same_error(
+    cbind(matrix(x64, 5), data.frame(a=9:1, b=LETTERS[1:9], stringsAsFactors=FALSE)),
+    cbind(matrix(x32, 5), data.frame(a=9:1, b=LETTERS[1:9], stringsAsFactors=FALSE))
+  )
+  expect_identical(
+    cbind(matrix(x64, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE)), 
+    convert_x32_result_to_integer64(cbind(matrix(x32, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE)), 1:2) 
+  )
+  expect_identical(
+    cbind(matrix(x64, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer64(-(1:10))), 
+    convert_x32_result_to_integer64(cbind(matrix(x32, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer(-(1:10))), c(1:2, 5))
+  )
+  expect_identical(
+    cbind(matrix(x64, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer64(-(1:2))), 
+    convert_x32_result_to_integer64(cbind(matrix(x32, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=-(1:2)), c(1:2, 5))
+  )
+  expect_identical(
+    cbind(matrix(x64, 5), data.frame(a=as.integer64(10:1), b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer64(-(1:2))), 
+    convert_x32_result_to_integer64(cbind(matrix(x32, 5), data.frame(a=as.integer64(10:1), b=LETTERS[1:10], stringsAsFactors=FALSE), yy=-(1:2)), c(1:2, 5))
+  )
+  expect_identical(
+    tryCatch(cbind(as.integer64(1:2), matrix(x64, 5)), warning=conditionMessage),
+    tryCatch(cbind(1:2, matrix(x32, 5)), warning=conditionMessage)
+  )
+  suppressWarnings(expect_identical(
+    cbind(as.integer64(1:2), matrix(x64, 5)), 
+    convert_x32_result_to_integer64(cbind(1:2, matrix(x32, 5)))
+  ))
+})
+
+with_parameters_test_that("cbind deparse.level works consistent to R", {
+  skip_unless_r(">= 4.0.0")
+  x = 1L
+  expected_result = base::cbind(a=x, x, x + 1L, deparse.level=deparse.level)
+  expected_result = structure(as.integer64(expected_result), dim = dim(expected_result), dimnames = dimnames(expected_result))
+
+  FUN = cbind
+  x = as.integer64(x)
+  expect_identical(cbind(a=x, x, x + 1L, deparse.level=deparse.level), expected_result)
+  expect_identical(FUN(a=x, x, x + 1L, deparse.level=deparse.level), expected_result)
+}, deparse.level = -1:3)
+
+test_that("rbind works consistent to R", {
+  convert_x32_result_to_integer64 = function(x, rowsToConvert=NULL) {
+    if (!is.matrix(x) && !is.data.frame(x)) return(x)
+    if (is.data.frame(x)) {
+      for (row in rowsToConvert)
+        x[[row]] = as.integer64(x[[row]])
+      return(x)
+    }
+    if (is.list(x)) {
+      nrow_x = nrow(x)
+      for (row in rowsToConvert)
+        for (ii in seq_len(ncol(x)))
+          x[[(ii - 1L)*nrow_x + row]] = as.integer64(x[[(ii - 1L)*nrow_x + row]])
+      x = replace_dimnames(x, "x32", "x64")
+    } else { # is.matrix(x)
+      x = replace_dimnames(matrix(as.integer64(x), nrow=nrow(x), ncol=ncol(x), dimnames=dimnames(x)), "x32", "x64")
+      oldClass(x) = "integer64"
+    }
+    x
+  }
+  
+  x32 = 1:10
+  x64 = as.integer64(x32)
+
+  expect_identical(rbind(x64, as.raw(5L)), convert_x32_result_to_integer64(rbind(x32, as.raw(5L))))
+  expect_identical(rbind(x64, FALSE), convert_x32_result_to_integer64(rbind(x32, FALSE)))
+  expect_identical(rbind(x64, 0L), convert_x32_result_to_integer64(rbind(x32, 0L)))
+  expect_identical(rbind(x64, 0.0), convert_x32_result_to_integer64(rbind(x32, 0.0)))
+  expect_identical(rbind(x64, 0.0+0.0i),  replace_dimnames(rbind(x32, 0.0+0.0i), "x32", "x64"))
+  expect_identical(rbind(x64, as.difftime(0.0, units="secs")), convert_x32_result_to_integer64(rbind(x32, as.difftime(0.0, units="secs"))))
+  expect_identical(rbind(x64, as.POSIXct(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(rbind(x32, as.POSIXct(0.0, origin="2026-01-27"))))
+  suppressWarnings(expect_identical(rbind(x64, as.POSIXlt(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(rbind(x32, as.POSIXlt(0.0, origin="2026-01-27")), 1L)))
+  expect_identical(rbind(x64, as.Date(0.0, origin="2026-01-27")), convert_x32_result_to_integer64(rbind(x32, as.Date(0.0, origin="2026-01-27"))))
+  expect_identical(rbind(x64, as.factor(1L)), convert_x32_result_to_integer64(rbind(x32, as.factor(1L))))
+  expect_identical(rbind(x64, as.ordered(1L)), convert_x32_result_to_integer64(rbind(x32, as.ordered(1L))))
+  expect_identical(rbind(x64, as.integer64(0L)), replace_dimnames(rbind(x32, as.integer64(0L)), "x32", "x64"))
+  expect_identical(rbind(integer64()), convert_x32_result_to_integer64(rbind(integer())))
+  expect_identical(rbind(NA_integer64_), convert_x32_result_to_integer64(rbind(NA_integer_)))
+  expect_identical(rbind(rep(NA_integer64_, 2)), convert_x32_result_to_integer64(rbind(rep(NA_integer_, 2))))
+  expect_identical(rbind(x64), convert_x32_result_to_integer64(rbind(x32)))
+  expect_identical(rbind(x64, c(TRUE, NA)), convert_x32_result_to_integer64(rbind(x32, c(TRUE, NA))))
+  expect_identical(rbind(x64, c(42L, NA)), convert_x32_result_to_integer64(rbind(x32, c(42L, NA))))
+  expect_identical(rbind(x64, c(42.0, NA)), convert_x32_result_to_integer64(rbind(x32, c(42.0, NA))))
+  expect_identical(rbind(x64, c(42.0+42.0i, NA)), replace_dimnames(rbind(x32, c(42.0+42.0i, NA)), "x32", "x64"))
+  # TODO(#44): adjust tests accordingly
+  expect_identical(rbind(x64, c("42", NA)), convert_x32_result_to_integer64(rbind(x32, c("42", NA))))
+  expect_identical(rbind(x64, character()), convert_x32_result_to_integer64(rbind(x32, character())))
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(rbind(x64, c("42", NA)), replace_dimnames(rbind(x32, c("42", NA)), "x32", "x64"))
+    expect_identical(rbind(x64, character()), replace_dimnames(rbind(x32, character()), "x32", "x64"))
+  })
+  expect_identical(rbind(x64, complex()), replace_dimnames(rbind(x32, complex()), "x32", "x64"))
+  
+  expect_identical(
+    rbind(A=x64, B=list()),
+    convert_x32_result_to_integer64(rbind(A=x32, B=list()), 1L)
+  )
+  expect_identical(
+    rbind(A=x64, B=list(a=1:10, b=1:2)),
+    convert_x32_result_to_integer64(rbind(A=x32, B=list(a=1:10, b=1:2)), 1L)
+  )
+  expect_identical(
+    rbind(A=matrix(x64, 5), B=list()),
+    convert_x32_result_to_integer64(rbind(A=matrix(x32, 5), B=list()), 1:5)
+  )
+  suppressWarnings(expect_identical(
+    rbind(A=matrix(x64, 5), B=list(), C=1:5),
+    convert_x32_result_to_integer64(rbind(A=matrix(x32, 5), B=list(), C=1:5), 1:6)
+  ))
+  suppressWarnings(expect_identical(
+    rbind(A=matrix(x64, 5), B=list(a=1:10, b=1:2), C=1:5),
+    convert_x32_result_to_integer64(rbind(A=matrix(x32, 5), B=list(a=1:10, b=1:2), C=1:5), c(1:5, 7))
+  ))
+  skip_unless_r(">= 4.0.0") # in my tests on R 3.5.0 this is identical, except the one with as.complex() and "bit64.promoteInteger64ToCharacter=TRUE", because a factor instead of character is returned.
+  expect_same_error( # mismatch column count
+    rbind(matrix(x64, 5), list(), NULL, matrix(1:10, 2)),
+    rbind(matrix(x32, 5), list(), NULL, matrix(1:10, 2))
+  )
+  # suppressWarnings(): character->integer64 coercion because of bit64.promoteInteger64ToCharacter=FALSE prior to error.
+  #   TODO(#44): remove suppression.
+  expect_same_error( # no column names in matrix
+    suppressWarnings(rbind(matrix(x64, 5), list(), NULL, data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE))),
+    rbind(matrix(x32, 5), list(), NULL, data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE))
+  )
+  expect_same_error( # ditto w/o intermediate empty inputs
+    suppressWarnings(rbind(matrix(x64, 5), data.frame(a=5:1, b=LETTERS[1:5], stringsAsFactors=FALSE))),
+    rbind(matrix(x32, 5), data.frame(a=5:1, b=LETTERS[1:5], stringsAsFactors=FALSE))
+  )
+  # TODO(#44): adjust tests accordingly
+  expect_identical(
+    rbind(matrix(x64, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=as.character(1:5), stringsAsFactors=FALSE)), 
+    convert_x32_result_to_integer64(rbind(matrix(x32, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=1:5)), 1:2)
+  )
+  withr::with_options(list(bit64.promoteInteger64ToCharacter=TRUE), {
+    expect_identical(
+      rbind(matrix(x64, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=as.character(1:5), stringsAsFactors=FALSE)),
+      rbind(matrix(x32, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=as.character(5:1), b=as.character(1:5), stringsAsFactors=FALSE))
+      # This would be consistent with base R, but it requires additional logic to determine the columns to convert from the input in advance to have them coerced accordingly.
+      # convert_x32_result_to_integer64(rbind(matrix(x32, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=as.character(1:5), stringsAsFactors=FALSE)), 1L)
+    )
+  })
+  expect_identical(
+    rbind(matrix(x64, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=as.complex(1:5))),
+    rbind(matrix(x32, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=as.complex(5:1), b=as.complex(1:5)))
+    # This would be consistent with base R, but it requires additional logic to determine the columns to convert from the input in advance to have them coerced accordingly.
+    # convert_x32_result_to_integer64(rbind(matrix(x32, 5, dimnames=list(NULL, c("a", "b"))), data.frame(a=5:1, b=as.complex(1:5))), 1L)
+  )
+  # TODO(#44): remove supression (as above).
+  expect_same_error( # no column names in matrix
+    suppressWarnings(rbind(matrix(x64, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer64(-(1:10)))),
+    rbind(matrix(x32, 5), data.frame(a=10:1, b=LETTERS[1:10], stringsAsFactors=FALSE), yy=as.integer64(-(1:10)))
+  )
+  expect_identical(
+    tryCatch(rbind(as.integer64(1:5), matrix(x64, 5)), warning=conditionMessage),
+    tryCatch(rbind(1:5, matrix(x32, 5)), warning=conditionMessage)
+  )
+  suppressWarnings(expect_identical(
+    rbind(as.integer64(1:5), matrix(x64, 5)), 
+    convert_x32_result_to_integer64(rbind(1:5, matrix(x32, 5)))
+  ))
+
+  expect_identical(rbind(integer64(), data.frame(a=1:2, b=10:11)), convert_x32_result_to_integer64(rbind(integer(), data.frame(a=1:2, b=10:11)), 1:2))
+  expect_identical(rbind(integer64(1), data.frame(a=1:2, b=10:11)), convert_x32_result_to_integer64(rbind(integer(1), data.frame(a=1:2, b=10:11)), 1:2))
+  
+  suppressWarnings(expect_identical(rbind(integer64(3), data.frame(a=1:2, b=10:11)), convert_x32_result_to_integer64(rbind(integer(3), data.frame(a=1:2, b=10:11)), 1:2)))
+  expect_identical(
+    tryCatch(rbind(integer64(3), data.frame(a=1:2, b=10:11)), warning=conditionMessage), 
+    tryCatch(convert_x32_result_to_integer64(rbind(integer(3), data.frame(a=1:2, b=10:11)), 1:2), warning=conditionMessage)
+  )
+})
+
+with_parameters_test_that("rbind deparse.level works consistent to R", {
+  skip_unless_r(">= 4.0.0")
+  x = 1L
+  expected_result = base::rbind(a=x, x, x + 1L, deparse.level=deparse.level)
+  expected_result = structure(as.integer64(expected_result), dim = dim(expected_result), dimnames = dimnames(expected_result))
+
+  FUN = rbind
+  x = as.integer64(x)
+  expect_identical(rbind(a=x, x, x + 1L, deparse.level=deparse.level), expected_result)
+  expect_identical(FUN(a=x, x, x + 1L, deparse.level=deparse.level), expected_result)
+}, deparse.level = -1:3)
+
+test_that("seq.integer64 works with S4 subclasses inheriting from integer64", {
+  # Use a unique class name to avoid conflicts
+  className <- "test64_seq_regression"
+  if (!methods::isClass(className)) {
+    methods::setClass(className, contains = "integer64")
+    withr::defer(methods::removeClass(className))
+  }
+
+  from <- as.integer64(1L)
+  to <- as.integer64(10L)
+  by <- methods::new(className, as.integer64(2))
+
+  expect_identical(seq(from=from, to=to, by=by), as.integer64(c(1L, 3L, 5L, 7L, 9L)))
+  expect_identical(seq(to=to, by=by, length.out=5L), as.integer64(c(2L, 4L, 6L, 8L, 10L)))
+  expect_identical(seq(from=from, by=by, length.out=5L), as.integer64(c(1L, 3L, 5L, 7L, 9L)))
+})
+
+test_that("back-compatible keep.names=TRUE is supported for limited input classes", {
+  x = as.integer64(1L)
+  names(x) = "a"
+  expect_named(as.integer64(x, keep.names=TRUE), "a")
+
+  y = c(a = 1.0)
+  expect_named(as.integer64(y, keep.names=TRUE), "a")
+})
+
+test_that("bitstring class meshes with R's own (from 4.6.0)", {
+  expect_no_error(print(as.bitstring(lim.integer64())))
 })

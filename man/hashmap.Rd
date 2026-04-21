@@ -86,7 +86,8 @@ hashmapupo(x, ...)
 
 \item{...}{further arguments, passed from generics, ignored in methods}
 
-\item{minfac}{minimum factor by which the hasmap has more elements compared to the data \code{x}, ignored if \code{hashbits} is given directly}
+\item{minfac}{minimum factor by which the hasmap has more elements compared to the data \code{x},
+ignored if \code{hashbits} is given directly}
 
 \item{hashbits}{length of hashmap is \code{2^hashbits}}
 
@@ -96,7 +97,9 @@ hashmapupo(x, ...)
 
 \item{nomatch}{the value to be returned if an element is not found in the hashmap}
 
-\item{keep.order}{determines order of results and speed: \code{FALSE} (the default) is faster and returns in the (pseudo)random order of the hash function, \code{TRUE} returns in the order of first appearance in the original data, but this requires extra work}
+\item{keep.order}{determines order of results and speed: \code{FALSE} (the default) is faster and returns in the
+(pseudo)random order of the hash function, \code{TRUE} returns in the order of first appearance in the original
+data, but this requires extra work}
 }
 \value{
 See Details
@@ -114,15 +117,15 @@ re-use hashmaps, which avoid re-building hashmaps again and again.
    \code{hashmap} \tab \code{\link[=match.integer64]{match()}} \tab return hashmap \cr
    \code{hashpos} \tab \code{\link[=match.integer64]{match()}} \tab return positions of \code{x} in \code{hashmap} \cr
    \code{hashrev} \tab \code{\link[=match.integer64]{match()}} \tab return positions of \code{hashmap} in \code{x} \cr
-   \code{hashfin} \tab \code{\link{\%in\%.integer64}} \tab return logical whether \code{x} is in \code{hashmap} \cr
-   \code{hashrin} \tab \code{\link{\%in\%.integer64}} \tab return logical whether \code{hashmap} is in \code{x} \cr
+   \code{hashfin} \tab \code{\link[=match.integer64]{\%in\%.integer64}} \tab return logical whether \code{x} is in \code{hashmap} \cr
+   \code{hashrin} \tab \code{\link[=match.integer64]{\%in\%.integer64}} \tab return logical whether \code{hashmap} is in \code{x} \cr
    \code{hashdup} \tab \code{\link[=duplicated.integer64]{duplicated()}} \tab return logical whether hashdat is duplicated using hashmap \cr
    \code{hashuni} \tab \code{\link[=unique.integer64]{unique()}} \tab return unique values of hashmap \cr
    \code{hashmapuni} \tab \code{\link[=unique.integer64]{unique()}} \tab return unique values of \code{x} \cr
    \code{hashupo} \tab \code{\link[=unique.integer64]{unique()}} \tab return positions of unique values in hashdat \cr
    \code{hashmapupo} \tab \code{\link[=unique.integer64]{unique()}} \tab return positions of unique values in \code{x} \cr
-   \code{hashtab} \tab \code{\link[=table.integer64]{table()}} \tab tabulate values of hashdat using hashmap in \code{keep.order=FALSE} \cr
-   \code{hashmaptab} \tab \code{\link[=table.integer64]{table()}} \tab tabulate values of \code{x} building hasmap on the fly in \code{keep.order=FALSE} \cr
+   \code{hashtab} \tab \code{\link[=table]{table()}} \tab tabulate values of hashdat using hashmap in \code{keep.order=FALSE} \cr
+   \code{hashmaptab} \tab \code{\link[=table]{table()}} \tab tabulate values of \code{x} building hasmap on the fly in \code{keep.order=FALSE} \cr
 }
 }
 \examples{
@@ -146,36 +149,18 @@ hashmapupo(y)
 hashtab(hy)
 hashmaptab(y)
 
-stopifnot(identical(match(as.integer(x),as.integer(y)),hashpos(hy, x)))
-stopifnot(identical(match(as.integer(x),as.integer(y)),hashrev(hx, y)))
-stopifnot(identical(as.integer(x) \%in\% as.integer(y), hashfin(hy, x)))
-stopifnot(identical(as.integer(x) \%in\% as.integer(y), hashrin(hx, y)))
-stopifnot(identical(duplicated(as.integer(y)), hashdup(hy)))
-stopifnot(identical(as.integer64(unique(as.integer(y))), hashuni(hy, keep.order=TRUE)))
-stopifnot(identical(sort(hashuni(hy, keep.order=FALSE)), sort(hashuni(hy, keep.order=TRUE))))
-stopifnot(identical(y[hashupo(hy, keep.order=FALSE)], hashuni(hy, keep.order=FALSE)))
-stopifnot(identical(y[hashupo(hy, keep.order=TRUE)], hashuni(hy, keep.order=TRUE)))
-stopifnot(identical(hashpos(hy, hashuni(hy, keep.order=TRUE)), hashupo(hy, keep.order=TRUE)))
-stopifnot(identical(hashpos(hy, hashuni(hy, keep.order=FALSE)), hashupo(hy, keep.order=FALSE)))
-stopifnot(identical(hashuni(hy, keep.order=FALSE), hashtab(hy)$values))
-stopifnot(identical(as.vector(table(as.integer(y), useNA="ifany"))
-, hashtab(hy)$counts[order.integer64(hashtab(hy)$values)]))
-stopifnot(identical(hashuni(hy, keep.order=TRUE), hashmapuni(y)))
-stopifnot(identical(hashupo(hy, keep.order=TRUE), hashmapupo(y)))
-stopifnot(identical(hashtab(hy), hashmaptab(y)))
-
     \dontrun{
     message("explore speed given size of the hasmap in 2^hashbits and size of the data")
     message("more hashbits means more random access and less collisions")
     message("i.e. more data means less random access and more collisions")
     bits <- 24
     b <- seq(-1, 0, 0.1)
-    tim <- matrix(NA, length(b), 2, dimnames=list(b, c("bits","bits+1")))
-    for (i in 1:length(b)){
+    tim <- matrix(NA, length(b), 2, dimnames=list(b, c("bits", "bits+1")))
+    for (i in 1:length(b)) {
       n <- as.integer(2^(bits+b[i]))
       x <- as.integer64(sample(n))
-      tim[i,1] <- repeat.time(hashmap(x, hashbits=bits))[3]
-      tim[i,2] <- repeat.time(hashmap(x, hashbits=bits+1))[3]
+      tim[i, 1] <- repeat.time(hashmap(x, hashbits=bits))[3]
+      tim[i, 2] <- repeat.time(hashmap(x, hashbits=bits+1))[3]
       print(tim)
       matplot(b, tim)
     }
