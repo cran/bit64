@@ -27,6 +27,7 @@
 #' rowSums(A)
 #' aperm(A, 2:1)
 #' @name matrix64
+#' @return A matrix of integer64 values with the appropriate dimension
 NULL
 
 
@@ -97,6 +98,9 @@ aperm.integer64 = function(a, perm, ...) {
     return(x%*%y)
 
   target_class = target_class_for_Ops(x, y)
+  if (target_class %in% c("character", "factor")) {
+    stop(errorCondition(gettext("requires numeric/complex matrix/vector arguments", domain="R"), call=sys.call(sys.nframe() - 1L)))
+  }
   if (target_class != "integer64") {
     if (is.integer64(x)) {
       for (cc in class(y)) {

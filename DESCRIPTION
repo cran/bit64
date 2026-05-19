@@ -1,6 +1,6 @@
 Package: bit64
 Title: A S3 Class for Vectors of 64bit Integers
-Version: 4.8.0
+Version: 4.8.2
 Authors@R: c(
     person("Michael", "Chirico", email="michaelchirico4@gmail.com", role=c("aut", "cre")),
     person("Jens", "Oehlschlägel", role="aut"),
@@ -32,7 +32,7 @@ Config/Needs/development: patrick, testthat
 Config/Needs/website: tidyverse/tidytemplate
 RoxygenNote: 7.3.3
 NeedsCompilation: yes
-Packaged: 2026-04-20 06:52:55 UTC; michael
+Packaged: 2026-05-19 05:37:05 UTC; chiricom
 Author: Michael Chirico [aut, cre],
   Jens Oehlschlägel [aut],
   Leonardo Silvestri [ctb],
@@ -40,4 +40,4 @@ Author: Michael Chirico [aut, cre],
   Christian Ullerich [ctb]
 Maintainer: Michael Chirico <michaelchirico4@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-04-21 06:10:02 UTC
+Date/Publication: 2026-05-19 09:40:02 UTC
