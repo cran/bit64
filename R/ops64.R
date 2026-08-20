@@ -12,14 +12,18 @@
 #'
 #' Binary operators for integer64 vectors.
 #'
-#' @param e1,e2,x numeric or complex vectors or objects which can be coerced to such, or other objects for which methods have been written for - especially 'integer64' vectors.
+#' @param e1,e2,x numeric or complex vectors or objects which can be coerced to such,
+#'   or other objects for which methods have been written for - especially 'integer64' vectors.
+#'
+#' @details
+#' [`^`] with 'integer' or 'integer64' exponent now calculates the power precisely and returns
+#'   an overflow warning, if an overflow appears.
 #'
 #' @returns
-#'   [`&`], [`|`], [`!`], [`!=`], [`==`], [`<`], [`<=`], [`>`], [`>=`] return a logical vector
-#'
-#'   [`/`] returns a double vector
-#'
-#'   [`+`], [`-`], [`*`], [`%/%`][Arithmetic], [`%%`][Arithmetic], [`^`] return a vector of class 'integer64' or different class depending on the operands
+#'   - [`&`], [`|`], [`!`], [`!=`], [`==`], [`<`], [`<=`], [`>`], [`>=`] return a logical vector
+#'   - [`/`] returns a double vector
+#'   - [`+`], [`-`], [`*`], [`%/%`][Arithmetic], [`%%`][Arithmetic], [`^`] return a vector of class
+#'     'integer64' or different class depending on the operands
 #'
 #' @keywords classes manip
 #' @seealso [integer64()]
@@ -116,33 +120,26 @@ binattr = function(e1, e2) {
 
 # helper for determining the target class for Ops methods
 target_class_for_Ops = function(e1, e2) {
-  convert_to_integer64 = function(el) is.numeric(el) || is.logical(el)
-  if(missing(e2)) {
-    if (!is.numeric(unclass(e1)) && !is.logical(e1) && !is.complex(e1) && !inherits(e1, "POSIXt"))
-      stop(errorCondition(gettext("non-numeric argument to mathematical function", domain="R"), call=sys.call(sys.nframe() - 1L)))
+  if (missing(e2)) {
+    stop("internal error in target_class_for_Ops: e2 is missing") # nocov
+  }
 
-    if (convert_to_integer64(e1)) {
+  .validate_binary_operator_argument(e1)
+  .validate_binary_operator_argument(e2)
+
+  if (is.factor(e1) || is.factor(e2)) {
+    "factor"
+  } else if (is.character(e1) || is.character(e2)) {
+    "character"
+  } else {
+    convert_to_integer64 = function(el) is.numeric(el) || is.logical(el)
+    conv_to_int1 = convert_to_integer64(e1)
+    if (conv_to_int1 && convert_to_integer64(e2)) {
       "integer64"
+    } else if (conv_to_int1) {
+      class(e2)[1L]
     } else {
       class(e1)[1L]
-    }
-  } else {
-    .validate_binary_operator_argument(e1)
-    .validate_binary_operator_argument(e2)
-
-    if (is.factor(e1) || is.factor(e2)) {
-      "factor"
-    } else if (is.character(e1) || is.character(e2)) {
-      "character"
-    } else {
-      conv_to_int1 = convert_to_integer64(e1)
-      if (conv_to_int1 && convert_to_integer64(e2)) {
-        "integer64"
-      } else if (conv_to_int1) {
-        class(e2)[1L]
-      } else {
-        class(e1)[1L]
-      }
     }
   }
 }
@@ -156,6 +153,7 @@ factor_op_warning_na = function(op, e1, e2) {
 }
 
 #' @rawNamespace if (getRversion() >= "4.3.0") S3method(chooseOpsMethod,integer64)
+#' @exportS3Method NULL
 chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
   TRUE
 }
@@ -165,7 +163,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
 `+.integer64` = function(e1, e2) {
   if (missing(e2))
     return(e1)
-  
+
   target_class = target_class_for_Ops(e1, e2)
   if (target_class != "integer64") {
     if (is.integer64(e1))
@@ -189,8 +187,9 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
 #' @export
 `-.integer64` = function(e1, e2) {
   if (missing(e2)) {
-    if (!is.integer64(e1)) 
-      return(-e1)
+    if (!is.integer64(e1)) {
+      stop("internal error in -.integer64: e1 is not integer64") # nocov
+    }
     e2 = e1
     e1 = as.integer64(0L)
   } else {
@@ -225,7 +224,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 %/% e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -247,7 +246,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 %% e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -304,7 +303,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 ^ e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -330,7 +329,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 / e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -392,7 +391,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 != e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -496,7 +495,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 >= e2)
   }
-  
+
   a = binattr(e1, e2)
   l1 = length(e1)
   l2 = length(e2)
@@ -517,7 +516,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 & e2)
   }
-  
+
   a = binattr(e1, e2)
   ret = as.logical(e1) & as.logical(e2)
   names(ret) = a$names
@@ -535,7 +534,7 @@ chooseOpsMethod.integer64 = function(x, y, mx, my, cl, reverse) {
       e2 = .as_double_integer64(e2, keep.attributes=TRUE)
     return(e1 | e2)
   }
-  
+
   a = binattr(e1, e2)
   ret = as.logical(e1) | as.logical(e2)
   names(ret) = a$names
